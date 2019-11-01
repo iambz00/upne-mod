@@ -1,0 +1,8 @@
+﻿## Interface: 11302
+## Title: upne
+## Notes: my setting
+## Notes-koKR: 내 전용 세팅
+## SavedVariables: upneDB
+
+upne.lua
+upneOptions.xml
