@@ -23,6 +23,7 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		upneDB.interrupt = true
 		upneDB.interruptChannel = "PARTY"
 		upneDB.tooltipItemLevel = true
+		upneDB.setShamanColor = true
 		--upneDB.tooltipItemID = true
 	end
 	Upne.upneDB = upneDB
@@ -44,9 +45,9 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 				upneDB.interrupt = false
 			end
 			upne_InterruptAlarm()
-		elseif cmd ~= "" then
---			InterfaceOptionsFrame_OpenToCategory("upne options")
-			InterfaceOptionsFrame_OpenToCategory("upne options")
+		else
+			InterfaceOptionsFrame_OpenToCategory("upneMod")
+			InterfaceOptionsFrame_OpenToCategory("upneMod")
 		end
 	end
 	SLASH_CALC1 = "/계산"
@@ -71,6 +72,12 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		upne_SetTooltipHandler(ItemRefTooltip, GameTooltip_Add_Item_Level)
 		upne_SetTooltipHandler(ShoppingTooltip1, GameTooltip_Add_Item_Level_Short)
 		upne_SetTooltipHandler(ShoppingTooltip2, GameTooltip_Add_Item_Level_Short)
+	end
+
+	if Upne.upneDB.setShamanColor then
+		upne_SetShamanColor(0.0, 0.44, 0.87)
+	else
+		upne_SetShamanColor(0.96, 0.55, 0.73)
 	end
 end
 
@@ -199,8 +206,15 @@ end
 function upne_ConfigPanel()
 	_G.UpneOptions_Check1:SetChecked(upneDB.interrupt)
 	_G.UpneOptions_Check2:SetChecked(upneDB.tooltipItemLevel)
+	_G.UpneOptions_Check3:SetChecked(upneDB.setShamanColor)
 	interruptDropDown = _G.upne_cbox
 	UIDropDownMenu_Initialize(interruptDropDown, UpneOptions_DropDownInterrupt, "")
 	interruptDropDown.value = upneDB.interruptChannel
 	UIDropDownMenu_SetSelectedValue(interruptDropDown, interruptDropDown.value)
+end
+
+function upne_SetShamanColor(r,g,b)
+	RAID_CLASS_COLORS.SHAMAN.r = r
+	RAID_CLASS_COLORS.SHAMAN.g = g
+	RAID_CLASS_COLORS.SHAMAN.b = b
 end

@@ -1,5 +1,5 @@
 function UpneOptions_OnLoad(panel)
-	panel.name = "upne options"
+	panel.name = "upneMod"
 	-- panel.parent
 	panel.okay = function(self) end
 	panel.cancel = function(self) end
@@ -12,10 +12,10 @@ function UpneOptions_OnLoad(panel)
 	frame:SetPoint("TOPLEFT", UpneOptions_Description, "BOTTOMLEFT", 0, -20)
 	frame = CreateFrame("CheckButton", "UpneOptions_Check2", panel, "UpneCheckButtonTemplate")
 	frame:SetPoint("TOPLEFT", UpneOptions_Check1, "BOTTOMLEFT", 0, -8)
-
---[[	frame = CreateFrame("CheckButton", "UpneOptions_Check3", panel, "UpneCheckButtonTemplate")
+	frame = CreateFrame("CheckButton", "UpneOptions_Check3", panel, "UpneCheckButtonTemplate")
 	frame:SetPoint("TOPLEFT", UpneOptions_Check2, "BOTTOMLEFT", 0, -8)
-	frame = CreateFrame("EditBox", "UpneOptions_EditBox2_1", panel, "UpneInputBoxTemplate")
+
+--[[	frame = CreateFrame("EditBox", "UpneOptions_EditBox2_1", panel, "UpneInputBoxTemplate")
 	frame:SetPoint("LEFT", UpneOptions_Check2, "RIGHT", 100, 0)
 	EditBoxSetup(frame)
 
@@ -29,11 +29,11 @@ function UpneOptions_OnLoad(panel)
 	_G.UpneOptions_Check1Text:SetText(" 차단 채널")
 	_G.UpneOptions_Check1.func = UpneInterruptAlarm
 	
-	_G.UpneOptions_Check2Text:SetText(" 툴팁에 아이템 레벨 표시 ")
+	_G.UpneOptions_Check2Text:SetText(" 툴팁에 아이템 레벨 표시")
 	_G.UpneOptions_Check2.func = UpneTooltipItemLevel
 
---	_G.UpneOptions_Check2Text:SetText(" 툴팁에 아이템 ID 표시 ")
---	_G.UpneOptions_Check2.func = UpneTooltipItemID
+	_G.UpneOptions_Check3Text:SetText(" 주술사를 파란색으로")
+	_G.UpneOptions_Check3.func = UpneSetShamanColor
 
 --[[
 	_G.UpneOptions_EditBox2_1Text:SetText("x")
@@ -113,6 +113,15 @@ function UpneTooltipItemLevel(self)
 		upne_SetTooltipHandler(ItemRefTooltip, nil)
 		upne_SetTooltipHandler(ShoppingTooltip1, nil)
 		upne_SetTooltipHandler(ShoppingTooltip2, nil)
+	end
+end
+
+function UpneSetShamanColor(self)
+	Upne.upneDB.setShamanColor = self:GetChecked()
+	if Upne.upneDB.setShamanColor then
+		upne_SetShamanColor(0.0, 0.44, 0.87)
+	else
+		upne_SetShamanColor(0.96, 0.55, 0.73)
 	end
 end
 
