@@ -19,10 +19,11 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 	-- Init DB
 	if not upneDB then
 		upneDB = {}
-		upneDB.version = "20191101"
+		upneDB.version = "20200414"
 		upneDB.interrupt = true
 		upneDB.interruptChannel = "PARTY"
 		upneDB.tooltipItemLevel = true
+		upneDB.tooltipSrc = true
 		upneDB.setShamanColor = true
 		--upneDB.tooltipItemID = true
 	end
@@ -79,6 +80,15 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 	else
 		upne_SetShamanColor(0.96, 0.55, 0.73)
 	end
+
+	Upne.sua = GameTooltip.SetUnitAura
+	Upne.sub = GameTooltip.SetUnitBuff
+	Upne.sud = GameTooltip.SetUnitDebuff
+
+	if Upne.upneDB.tooltipSrc then
+		upne_SetAuraSrc()
+	end
+
 end
 
 function upne_InterruptAlarm()
@@ -108,6 +118,61 @@ function upne_SetTooltipHandler(tooltip, func)
 			tooltip:SetScript("OnTooltipSetItem", nil)
 		end
 	end
+end
+--[[
+function upne_SetAuraSrc()
+	GameTooltip.SetUnitAura = function(self, ...)
+		Upne.sua(self, ...)
+		local _,_,_,_,_,_,src = UnitAura(...)
+		local name = "Unknown"
+		if src then
+			name, _ = UnitName(src)
+			local _, class, _ = UnitClass(src)
+			local classColor = RAID_CLASS_COLORS[class]
+			if classColor then
+				name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
+			end
+		end
+		self:AddDoubleLine(" ", "by "..name)
+		self:Show()
+	end
+end
+]]
+
+function upne_SetAuraSrc()
+	GameTooltip.SetUnitAura = function(gt, ...)
+		Upne.sua(gt, ...)
+		upne_AuraHandler(UnitAura, gt, ...)
+	end
+	GameTooltip.SetUnitBuff = function(gt, ...)
+		Upne.sub(gt, ...)
+		upne_AuraHandler(UnitBuff, gt, ...)
+	end
+	GameTooltip.SetUnitDebuff = function(gt, ...)
+		Upne.sud(gt, ...)
+		upne_AuraHandler(UnitDebuff, gt, ...)
+	end
+end
+
+function upne_AuraHandler(uaf, gt, ...)
+	local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
+	local name = "Unknown"
+	if src then
+		name, _ = UnitName(src)
+		local _, class, _ = UnitClass(src)
+		local classColor = RAID_CLASS_COLORS[class]
+		if classColor then
+			name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
+		end
+	end
+	gt:AddDoubleLine(" ", "by "..name)
+	gt:Show()
+end
+
+function upne_UnSetAuraSrc()
+	GameTooltip.SetUnitAura = Upne.sua
+	GameTooltip.SetUnitBuff = Upne.sub
+	GameTooltip.SetUnitDebuff = Upne.sud
 end
 
 --[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
@@ -184,22 +249,26 @@ end
 
 function GameTooltip_Add_Item_Level(tooltip, ...)
 	local itemLink = tooltip:GetItem()
-	local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-	local itemID, _ = GetItemInfoInstant(itemLink)
+	if itemLink then
+		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+		local itemID, _ = GetItemInfoInstant(itemLink)
 
-	if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-		tooltip:AddDoubleLine("아이템 레벨   |cffffffff" .. itemLevel .. "|r", "(ID:  |cffffffff" .. itemID .. "|r)")
+		if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
+			tooltip:AddDoubleLine("아이템 레벨   |cffffffff" .. itemLevel .. "|r", "(ID:  |cffffffff" .. itemID .. "|r)")
+		end
 	end
 end
 
 function GameTooltip_Add_Item_Level_Short(tooltip, ...)
 	local itemLink = tooltip:GetItem()
-	local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-	local itemID, _ = GetItemInfoInstant(itemLink)
+	if itemLink then
+		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+		local itemID, _ = GetItemInfoInstant(itemLink)
 
-	if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-		tooltip:AddLine("아이템 레벨 |cffffffff" .. itemLevel .. "|r")
-		tooltip:AddLine("아이템 ID |cffffffff" .. itemID .. "|r")
+		if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
+			tooltip:AddLine("아이템 레벨 |cffffffff" .. itemLevel .. "|r")
+			tooltip:AddLine("아이템 ID |cffffffff" .. itemID .. "|r")
+		end
 	end
 end
 
@@ -207,6 +276,7 @@ function upne_ConfigPanel()
 	_G.UpneOptions_Check1:SetChecked(upneDB.interrupt)
 	_G.UpneOptions_Check2:SetChecked(upneDB.tooltipItemLevel)
 	_G.UpneOptions_Check3:SetChecked(upneDB.setShamanColor)
+	_G.UpneOptions_Check4:SetChecked(upneDB.tooltipSrc)
 	interruptDropDown = _G.upne_cbox
 	UIDropDownMenu_Initialize(interruptDropDown, UpneOptions_DropDownInterrupt, "")
 	interruptDropDown.value = upneDB.interruptChannel

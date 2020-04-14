@@ -14,6 +14,8 @@ function UpneOptions_OnLoad(panel)
 	frame:SetPoint("TOPLEFT", UpneOptions_Check1, "BOTTOMLEFT", 0, -8)
 	frame = CreateFrame("CheckButton", "UpneOptions_Check3", panel, "UpneCheckButtonTemplate")
 	frame:SetPoint("TOPLEFT", UpneOptions_Check2, "BOTTOMLEFT", 0, -8)
+	frame = CreateFrame("CheckButton", "UpneOptions_Check4", panel, "UpneCheckButtonTemplate")
+	frame:SetPoint("TOPLEFT", UpneOptions_Check3, "BOTTOMLEFT", 0, -8)
 
 --[[	frame = CreateFrame("EditBox", "UpneOptions_EditBox2_1", panel, "UpneInputBoxTemplate")
 	frame:SetPoint("LEFT", UpneOptions_Check2, "RIGHT", 100, 0)
@@ -29,12 +31,14 @@ function UpneOptions_OnLoad(panel)
 	_G.UpneOptions_Check1Text:SetText(" 차단 채널")
 	_G.UpneOptions_Check1.func = UpneInterruptAlarm
 	
-	_G.UpneOptions_Check2Text:SetText(" 툴팁에 아이템 레벨 표시")
+	_G.UpneOptions_Check2Text:SetText(" 아이템 툴팁에 아이템 레벨 표시")
 	_G.UpneOptions_Check2.func = UpneTooltipItemLevel
 
 	_G.UpneOptions_Check3Text:SetText(" 주술사를 파란색으로")
 	_G.UpneOptions_Check3.func = UpneSetShamanColor
 
+	_G.UpneOptions_Check4Text:SetText(" 버프/디버프 툴팁에 시전자 표시")
+	_G.UpneOptions_Check4.func = UpneTooltipSrc
 --[[
 	_G.UpneOptions_EditBox2_1Text:SetText("x")
 	_G.UpneOptions_EditBox2_2Text:SetText("y")
@@ -80,7 +84,6 @@ end
 function UpneOptions_OnShow(panel)
 --	_G.UpneOptions_Check1:SetChecked(Upne.upneDB.interrupt)
 --	_G.UpneOptions_Check2:SetChecked(Upne.upneDB.tooltipItemLevel)
-
 --	_G.UpneOptions_EditBox2_1:SetText(tostring(_G.Upne.tooltip_x))
 --	_G.UpneOptions_EditBox2_2:SetText(tostring(_G.Upne.tooltip_y))
 --	_G.UpneOptions_EditBox2_1:SetNumeric(true)
@@ -115,6 +118,16 @@ function UpneTooltipItemLevel(self)
 		upne_SetTooltipHandler(ShoppingTooltip2, nil)
 	end
 end
+
+function UpneTooltipSrc(self)
+	Upne.upneDB.tooltipSrc = self:GetChecked()
+	if Upne.upneDB.tooltipSrc then
+		upne_SetAuraSrc()
+	else
+		upne_UnSetAuraSrc()
+	end
+end
+
 
 function UpneSetShamanColor(self)
 	Upne.upneDB.setShamanColor = self:GetChecked()
