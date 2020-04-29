@@ -156,17 +156,16 @@ end
 
 function upne_AuraHandler(uaf, gt, ...)
 	local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
-	local name = "Unknown"
 	if src then
-		name, _ = UnitName(src)
+		local name, _ = UnitName(src)
 		local _, class, _ = UnitClass(src)
 		local classColor = RAID_CLASS_COLORS[class]
 		if classColor then
 			name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
 		end
+		gt:AddDoubleLine(" ", "by "..name)
+		gt:Show()
 	end
-	gt:AddDoubleLine(" ", "by "..name)
-	gt:Show()
 end
 
 function upne_UnSetAuraSrc()
