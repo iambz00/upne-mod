@@ -89,6 +89,8 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		upne_SetAuraSrc()
 	end
 
+	Upne:RegisterEvent("TRADE_SHOW")
+	--Upne:RegisterEvent("TRADE_UPDATE")
 end
 
 function upne_InterruptAlarm()
@@ -286,4 +288,8 @@ function upne_SetShamanColor(r,g,b)
 	RAID_CLASS_COLORS.SHAMAN.r = r
 	RAID_CLASS_COLORS.SHAMAN.g = g
 	RAID_CLASS_COLORS.SHAMAN.b = b
+end
+
+function Upne:TRADE_SHOW(...)
+	TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
 end
