@@ -1,9 +1,8 @@
 ﻿local addonName, addon = ...
-local Upne = CreateFrame("Frame", "Upne")
-_G["Upne"] = Upne
-Upne:SetScript("OnEvent", function(self, event, ...) self[event](self, ...) end)
-
-local channelList = {
+Upnemod = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0")
+Upnemod.name = addonName
+Upnemod.version = GetAddOnMetadata(addonName, "Version")
+Upnemod.channelList = {
 	["SAY"] = "SAY",	["S"] = "SAY",	["ㄴ"] = "SAY",	["일반"] = "SAY",
 	["YELL"] = "YELL",	["Y"] = "YELL",	["ㅛ"] = "YELL",	["외침"] = "YELL",
 	["PARTY"] = "PARTY",	["P"] = "PARTY",	["ㅔ"] = "PARTY",	["파티"] = "PARTY",
@@ -11,12 +10,19 @@ local channelList = {
 	["INSTANCE"] = "INSTANCE",	["I"] = "INSTANCE",	["ㅑ"] = "INSTANCE",
 	["RAID_WARNING"] = "RAID_WARNING",	["RW"] = "RAID_WARNING",	["경보"] = "RAID_WARNING",
 }
+Upnemod.dbDefault = {
+	realm = {
+		[player] = {
+			announceInterrupt = false,
+			announceChannel = "SAY",
+			shamanColor = true,
+			tooltip_ilvl = true,
+			tooltip_aurasrc = true,
+		}
+	}
+}
 
-Upne:RegisterEvent("PLAYER_LOGIN")
-Upne.handler = {}
-
-function Upne:PLAYER_LOGIN(self, arg1, ...)
-	-- Init DB
+--[[
 	if not upneDB then
 		upneDB = {}
 		upneDB.version = "20200414"
@@ -25,12 +31,38 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		upneDB.tooltipItemLevel = true
 		upneDB.tooltipSrc = true
 		upneDB.setShamanColor = true
-		--upneDB.tooltipItemID = true
 	end
-	Upne.upneDB = upneDB
+]]
 
-	-- Setting config panel
-	upne_ConfigPanel()
+local playerGUID
+local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
+local MSG_SUFFIX = " |cff00ff00■|r"
+local p = function(str) print(MSG_PREFIX..str..MSG_SUFFIX) end
+
+function Upnemod:OnInitialize()
+	if upnedb.version then
+		-- migration
+	end
+	local wholeDb = LibStub("AceDB-3.0"):New("upneDB", dbDefault)
+	self.db = wholeDb.realm[UnitName"player"]
+	self:BuildOptions()
+
+	playerGUID = UnitGUID"player"
+	self.oldShaman = { r = RAID_CLASS_COLORS.SHAMAN.r, g = RAID_CLASS_COLORS.SHAMAN.g, b = RAID_CLASS_COLORS.SHAMAN.b }
+--	this should be [r = 0.96, g = 0.55, b = 0.73]
+
+	LibStub("AceConfig-3.0"):RegisterOptionsTable(self.name, self.optionsTable)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
+
+	self.sua = GameTooltip.SetUnitAura
+	self.sub = GameTooltip.SetUnitBuff
+	self.sud = GameTooltip.SetUnitDebuff
+
+	self:SetAnnounceInterrupt()
+	self:SetShamanColor()
+	self:SetTooltipIlvl()
+	self:SetTooltipAuraSrc()
+	self:SetTradeClassColor()
 
 	-- Slash Commands
 	SLASH_UPNE1 = "/ㅇㅇ"
@@ -40,15 +72,15 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		if cmd == "차단" or cmd == "int" or cmd == "interrupt" then
 			channel = channelList[val:upper()]
 			if channel then
-				upneDB.interrupt = true
-				upneDB.interruptChannel = channel
+				self.db.announceInterrupt = true
+				self.db.announceChannel = channel
 			else
-				upneDB.interrupt = false
+				self.db.announceInterrupt = false
 			end
-			upne_InterruptAlarm()
+			self:SetAnnounceInterrupt()
 		else
-			InterfaceOptionsFrame_OpenToCategory("upneMod")
-			InterfaceOptionsFrame_OpenToCategory("upneMod")
+			InterfaceOptionsFrame_OpenToCategory(self.name)
+			InterfaceOptionsFrame_OpenToCategory(self.name)
 		end
 	end
 	SLASH_CALC1 = "/계산"
@@ -58,105 +90,106 @@ function Upne:PLAYER_LOGIN(self, arg1, ...)
 		seterrorhandler(function (msg)
 			print("잘못된 계산식입니다.")
 		end)
-		msg = "local answer="..msg..";if answer then SendChatMessage('계산: "..msg.."','SAY');SendChatMessage('결과: '..answer,'SAY') end"
+		msg = "local answer="..msg..";if answer then SendChatMessage('계산: "..msg.." = '..answer,'SAY') end"
 		RunScript(msg)
 		seterrorhandler(origHandler)
 	end
 
-	-- Init handlers
-	if upneDB.interrupt then
-		Upne:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-	end
-
-	if upneDB.tooltipItemLevel then
-		upne_SetTooltipHandler(GameTooltip, GameTooltip_Add_Item_Level)
-		upne_SetTooltipHandler(ItemRefTooltip, GameTooltip_Add_Item_Level)
-		upne_SetTooltipHandler(ShoppingTooltip1, GameTooltip_Add_Item_Level_Short)
-		upne_SetTooltipHandler(ShoppingTooltip2, GameTooltip_Add_Item_Level_Short)
-	end
-
-	if Upne.upneDB.setShamanColor then
-		upne_SetShamanColor(0.0, 0.44, 0.87)
-	else
-		upne_SetShamanColor(0.96, 0.55, 0.73)
-	end
-
-	Upne.sua = GameTooltip.SetUnitAura
-	Upne.sub = GameTooltip.SetUnitBuff
-	Upne.sud = GameTooltip.SetUnitDebuff
-
-	if Upne.upneDB.tooltipSrc then
-		upne_SetAuraSrc()
-	end
-
-	Upne:RegisterEvent("TRADE_SHOW")
-	--Upne:RegisterEvent("TRADE_UPDATE")
 end
 
-function upne_InterruptAlarm()
-	if upneDB.interrupt then
-		Upne:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-		print("■ 차단 알림 - " .. upneDB.interruptChannel)
+function Upnemod:SetAnnounceInterrupt()
+	if self.db.announceInterrupt then
+		Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		p("차단 알림 - " .. self.db.announceChannel)
 	else
-		Upne:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-		print("■ 차단 알림 해제")
+		Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		p("차단 알림 해제")
 	end
 end
 
-function upne_SetTooltipHandler(tooltip, func)
+function Upnemod:SetShamanColor()
+	if self.db.shamanColor then
+		RAID_CLASS_COLORS.SHAMAN.r = 0.0
+		RAID_CLASS_COLORS.SHAMAN.g = 0.44
+		RAID_CLASS_COLORS.SHAMAN.b = 0.87
+		p("주술사 색상을 파랗게 표시")
+	else
+		RAID_CLASS_COLORS.SHAMAN.r = self.oldShaman.r
+		RAID_CLASS_COLORS.SHAMAN.g = self.oldShaman.g
+		RAID_CLASS_COLORS.SHAMAN.b = self.oldShaman.b
+		p("주술사 색상을 원래대로")
+	end
+end
+
+function Upnemod:SetTooltipIlvl()
+	if seld.db.tooltip_ilvl then
+		self:SetTooltipHandler(GameTooltip, GameTooltip_Ilvl)
+		self:SetTooltipHandler(ItemRefTooltip, GameTooltip_Ilvl)
+		self:SetTooltipHandler(ShoppingTooltip1, GameTooltip_Ilvl_Narrow)
+		self:SetTooltipHandler(ShoppingTooltip2, GameTooltip_Ilvl_Narrow)
+		p("툴팁에 아이템 레벨 표시")
+	else
+		self:SetTooltipHandler(GameTooltip, nil)
+		self:SetTooltipHandler(ItemRefTooltip, nil)
+		self:SetTooltipHandler(ShoppingTooltip1, nil)
+		self:SetTooltipHandler(ShoppingTooltip2, nil)
+		p("툴팁에 아이템 레벨 끄기")
+	end
+end
+
+function Upnemod:SetTooltipHandler(tooltip, func)
 	if func then
-		orig_handler = tooltip:GetScript("OnTooltipSetItem")
-		if orig_handler then
-			Upne.handler[tooltip:GetName()] = orig_handler
+		local orgHandler = tooltip:GetScript("OnTooltipSetItem")
+		if orgHandler then
+			self.tooltipHandler[tooltip:GetName()] = orgHandler
 			tooltip:HookScript("OnTooltipSetItem", func)
 		else
 			tooltip:SetScript("OnTooltipSetItem", func)
 		end
 	else
-		orig_handler = Upne.handler[tooltip:GetName()]
-		if orig_handler then
-			tooltip:SetScript("OnTooltipSetItem", orig_handler)
+		local orgHandler = self.tooltipHandler[tooltip:GetName()]
+		if orgHandler then
+			tooltip:SetScript("OnTooltipSetItem", orgHandler)
 		else
 			tooltip:SetScript("OnTooltipSetItem", nil)
 		end
 	end
 end
---[[
-function upne_SetAuraSrc()
-	GameTooltip.SetUnitAura = function(self, ...)
-		Upne.sua(self, ...)
-		local _,_,_,_,_,_,src = UnitAura(...)
-		local name = "Unknown"
-		if src then
-			name, _ = UnitName(src)
-			local _, class, _ = UnitClass(src)
-			local classColor = RAID_CLASS_COLORS[class]
-			if classColor then
-				name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
-			end
+
+function Upnemod:SetTooltipAuraSrc()
+	if self.db.tooltip_aurasrc then
+		GameTooltip.SetUnitAura = function(gt, ...)
+			self.sua(gt, ...)
+			upne_AuraHandler(UnitAura, gt, ...)
 		end
-		self:AddDoubleLine(" ", "by "..name)
-		self:Show()
-	end
-end
-]]
-
-function upne_SetAuraSrc()
-	GameTooltip.SetUnitAura = function(gt, ...)
-		Upne.sua(gt, ...)
-		upne_AuraHandler(UnitAura, gt, ...)
-	end
-	GameTooltip.SetUnitBuff = function(gt, ...)
-		Upne.sub(gt, ...)
-		upne_AuraHandler(UnitBuff, gt, ...)
-	end
-	GameTooltip.SetUnitDebuff = function(gt, ...)
-		Upne.sud(gt, ...)
-		upne_AuraHandler(UnitDebuff, gt, ...)
+		GameTooltip.SetUnitBuff = function(gt, ...)
+			self.sub(gt, ...)
+			upne_AuraHandler(UnitBuff, gt, ...)
+		end
+		GameTooltip.SetUnitDebuff = function(gt, ...)
+			self.sud(gt, ...)
+			upne_AuraHandler(UnitDebuff, gt, ...)
+		end
+		p("툴팁에 버프/디버프 시전자 표시")
+	else
+		GameTooltip.SetUnitAura = self.sua
+		GameTooltip.SetUnitBuff = self.sub
+		GameTooltip.SetUnitDebuff = self.sud
+		p("툴팁에 버프/디버프 시전자 끄기")
 	end
 end
 
-function upne_AuraHandler(uaf, gt, ...)
+function Upnemod:SetTradeClassColor()
+	if self.db.trade_classColor then
+		self:RegisterEvent("TRADE_SHOW")
+		p("거래 상대 직업색상 보기")
+	else
+		self:UnregisterEvent("TRADE_SHOW")
+		p("거래 상대 직업색상 끄기")
+	end
+end
+
+local function upne_AuraHandler(uaf, gt, ...)
 	local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
 	if src then
 		local name, _ = UnitName(src)
@@ -170,12 +203,6 @@ function upne_AuraHandler(uaf, gt, ...)
 	end
 end
 
-function upne_UnSetAuraSrc()
-	GameTooltip.SetUnitAura = Upne.sua
-	GameTooltip.SetUnitBuff = Upne.sub
-	GameTooltip.SetUnitDebuff = Upne.sud
-end
-
 --[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
   COMBAT_LOG_EVENT_UNFILTERED
 	timestamp, event, hideCaster, sourceGUID, sourceName,
@@ -187,28 +214,12 @@ end
 
 ]]
 
-function Upne:COMBAT_LOG_EVENT_UNFILTERED(...)
+function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
 	local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
 		spellId, spellName, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
-	if combatEvent == "SPELL_INTERRUPT" and sourceGUID == UnitGUID("player") then
+	if combatEvent == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
 		if not destName then destName = "대상없음" end
 
-		local spellLink, extraSpellLink
-
-		spellLink = spellName
-		extraSpellLink = extraSpellName
---[[
-		if spellId and GetSpellLink then
-			spellLink = GetSpellLink(spellId)
-		else
-			spellLink = spellName
-		end
-		if extraSpellId and GetSpellLink then
-			extraSpellLink = GetSpellLink(extraSpellId)
-		else
-			extraSpellLink = extraSpellName
-		end
-]]
 		-- Resolving RaidTarget
 		-- COMBATLOG_OBJECT_RAIDTARGET_MASK = 0x000000FF in FrameXML/Constants.lua
 		local raidTarget = bit.band(destRaidFlags, COMBATLOG_OBJECT_RAIDTARGET_MASK)
@@ -228,11 +239,9 @@ function Upne:COMBAT_LOG_EVENT_UNFILTERED(...)
 		-- RaidTarget end
 
 		if (not IsInGroup()) then
-			--print(" * 차단 ["..spellLink.."] -> "..raidTarget..destName.."의 ["..extraSpellLink .."]")
-			print(" * 차단 -> "..raidTarget..destName.."의 ["..extraSpellLink .."]")
+			p("차단 -> "..raidTarget..destName.."의 ["..extraSpellName .."]")
 		else
-			--SendChatMessage("차단 ["..spellLink.."] -> "..raidTarget..destName.."의 ["..extraSpellLink .."]", upneDB.interruptChannel)
-			SendChatMessage("차단 -> "..raidTarget..destName.."의 ["..extraSpellLink .."]", upneDB.interruptChannel)
+			SendChatMessage("차단 -> "..raidTarget..destName.."의 ["..extraSpellName .."]", self.db.announceChannel)
 		end
 --	elseif combatEvent == "SPELL_AURA_APPLIED" and UnitIsPlayer(sourceGUID) and destGUID == UnitGUID("player") then
 --		print(" * 오라 받음 [" .. sourceName .. "] 의 [" .. spellName .. "]")
@@ -248,7 +257,7 @@ end
 	= GetItemInfoInstant(itemID or "itemString" or "itemName" or "itemLink") 
 ]]
 
-function GameTooltip_Add_Item_Level(tooltip, ...)
+local function GameTooltip_Ilvl(tooltip, ...)
 	local itemLink = tooltip:GetItem()
 	if itemLink then
 		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
@@ -260,7 +269,7 @@ function GameTooltip_Add_Item_Level(tooltip, ...)
 	end
 end
 
-function GameTooltip_Add_Item_Level_Short(tooltip, ...)
+local function GameTooltip_Ilvl_Narrow(tooltip, ...)
 	local itemLink = tooltip:GetItem()
 	if itemLink then
 		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
@@ -273,23 +282,67 @@ function GameTooltip_Add_Item_Level_Short(tooltip, ...)
 	end
 end
 
-function upne_ConfigPanel()
-	_G.UpneOptions_Check1:SetChecked(upneDB.interrupt)
-	_G.UpneOptions_Check2:SetChecked(upneDB.tooltipItemLevel)
-	_G.UpneOptions_Check3:SetChecked(upneDB.setShamanColor)
-	_G.UpneOptions_Check4:SetChecked(upneDB.tooltipSrc)
-	interruptDropDown = _G.upne_cbox
-	UIDropDownMenu_Initialize(interruptDropDown, UpneOptions_DropDownInterrupt, "")
-	interruptDropDown.value = upneDB.interruptChannel
-	UIDropDownMenu_SetSelectedValue(interruptDropDown, interruptDropDown.value)
-end
-
-function upne_SetShamanColor(r,g,b)
-	RAID_CLASS_COLORS.SHAMAN.r = r
-	RAID_CLASS_COLORS.SHAMAN.g = g
-	RAID_CLASS_COLORS.SHAMAN.b = b
-end
-
-function Upne:TRADE_SHOW(...)
+function Upnemod:TRADE_SHOW(...)
 	TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
 end
+
+function Upnemod:BuildOptions()
+	local channelListOption = {
+		["일반"] = "SAY",
+		["외침"] = "YELL",
+		["파티"] = "PARTY",
+		["공격대"] = "RAID",
+		["공격대경보"] = "RAID_WARNING",
+	}
+	self.optionsTable = {
+		name = self.name,
+		handler = self,
+		get = function(info) return self.db[info[#info]] end,
+		set = function(info, value) self.db[info[#info]] = value end,
+		args = {
+			announceInterrupt = {
+				name = 'announce interruption',
+				type = 'toggle',
+				order = 101,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetAnnounceInterrupt()	end,
+			},
+			announceChannel = {
+				name = 'announce channel',
+				type = 'select',
+				values = channelListOption,
+				order = 102,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetAnnounceInterrupt() end,
+			},
+			shamanColor = {
+				name = 'turn shaman color to blue',
+				type = 'toggle',
+				order = 201,
+				set = function(info, value) self.db[info[#info]] = value end,
+			},
+			tooltip_ilvl = {
+				name = 'ilvl on tooltip',
+				type = 'toggle',
+				order = 301,
+				set = function(info, value) self.db[info[#info]] = value end,
+			},
+			tooltip_aurasrc = {
+				name = 'aura src on tooltip',
+				type = 'toggle',
+				order = 401,
+				set = function(info, value) self.db[info[#info]] = value end,
+			},
+			trade_classColor = {
+				name = 'class color on trade window',
+				type = 'toggle',
+				order = 501,
+				set = function(info, value) self.db[info[#info]] = value end,
+			},
+		}
+	}
+end
+	_G.UpneOptions_Check1Text:SetText(" 차단 채널")
+	_G.UpneOptions_Check2Text:SetText(" 아이템 툴팁에 아이템 레벨 표시")
+	_G.UpneOptions_Check3Text:SetText(" 주술사를 파란색으로")
+	_G.UpneOptions_Check4Text:SetText(" 버프/디버프 툴팁에 시전자 표시")
