@@ -10,6 +10,8 @@ Upnemod.channelList = {
 	["INSTANCE"] = "INSTANCE",	["I"] = "INSTANCE",	["ㅑ"] = "INSTANCE",
 	["RAID_WARNING"] = "RAID_WARNING",	["RW"] = "RAID_WARNING",	["경보"] = "RAID_WARNING",
 }
+local player = UnitName"player"
+
 Upnemod.dbDefault = {
 	realm = {
 		[player] = {
@@ -40,14 +42,15 @@ local MSG_SUFFIX = " |cff00ff00■|r"
 local p = function(str) print(MSG_PREFIX..str..MSG_SUFFIX) end
 
 function Upnemod:OnInitialize()
-	if upnedb.version then
+	if upneDB and upneDB.version then
 		-- migration
 	end
-	local wholeDb = LibStub("AceDB-3.0"):New("upneDB", dbDefault)
-	self.db = wholeDb.realm[UnitName"player"]
+	self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
+	self.db = self.wholeDb.realm[player]
 	self:BuildOptions()
 
 	playerGUID = UnitGUID"player"
+	self.tooltipHandler = {}
 	self.oldShaman = { r = RAID_CLASS_COLORS.SHAMAN.r, g = RAID_CLASS_COLORS.SHAMAN.g, b = RAID_CLASS_COLORS.SHAMAN.b }
 --	this should be [r = 0.96, g = 0.55, b = 0.73]
 
@@ -122,7 +125,7 @@ function Upnemod:SetShamanColor()
 end
 
 function Upnemod:SetTooltipIlvl()
-	if seld.db.tooltip_ilvl then
+	if self.db.tooltip_ilvl then
 		self:SetTooltipHandler(GameTooltip, GameTooltip_Ilvl)
 		self:SetTooltipHandler(ItemRefTooltip, GameTooltip_Ilvl)
 		self:SetTooltipHandler(ShoppingTooltip1, GameTooltip_Ilvl_Narrow)
@@ -297,18 +300,19 @@ function Upnemod:BuildOptions()
 	self.optionsTable = {
 		name = self.name,
 		handler = self,
+		type = 'group',
 		get = function(info) return self.db[info[#info]] end,
 		set = function(info, value) self.db[info[#info]] = value end,
 		args = {
 			announceInterrupt = {
-				name = 'announce interruption',
+				name = '차단알림 사용',
 				type = 'toggle',
 				order = 101,
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetAnnounceInterrupt()	end,
 			},
 			announceChannel = {
-				name = 'announce channel',
+				name = '차단알림 채널',
 				type = 'select',
 				values = channelListOption,
 				order = 102,
@@ -316,33 +320,33 @@ function Upnemod:BuildOptions()
 						self:SetAnnounceInterrupt() end,
 			},
 			shamanColor = {
-				name = 'turn shaman color to blue',
+				name = '주술사를 파란색으로 표시',
 				type = 'toggle',
 				order = 201,
-				set = function(info, value) self.db[info[#info]] = value end,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetShamanColor() end,
 			},
 			tooltip_ilvl = {
-				name = 'ilvl on tooltip',
+				name = '툴팁에 아이템 레벨/ID 표시',
 				type = 'toggle',
 				order = 301,
-				set = function(info, value) self.db[info[#info]] = value end,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetTooltipIlvl() end,
 			},
 			tooltip_aurasrc = {
-				name = 'aura src on tooltip',
+				name = '버프/디버프 툴팁에 시전자 표시',
 				type = 'toggle',
 				order = 401,
-				set = function(info, value) self.db[info[#info]] = value end,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetTooltipAuraSrc() end,
 			},
 			trade_classColor = {
-				name = 'class color on trade window',
+				name = '거래창에서 상대방 직업색상 보이기',
 				type = 'toggle',
 				order = 501,
-				set = function(info, value) self.db[info[#info]] = value end,
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetTradeClassColor() end,
 			},
 		}
 	}
 end
-	_G.UpneOptions_Check1Text:SetText(" 차단 채널")
-	_G.UpneOptions_Check2Text:SetText(" 아이템 툴팁에 아이템 레벨 표시")
-	_G.UpneOptions_Check3Text:SetText(" 주술사를 파란색으로")
-	_G.UpneOptions_Check4Text:SetText(" 버프/디버프 툴팁에 시전자 표시")
