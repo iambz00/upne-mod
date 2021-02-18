@@ -20,21 +20,11 @@ Upnemod.dbDefault = {
 			shamanColor = true,
 			tooltip_ilvl = true,
 			tooltip_aurasrc = true,
+			trade_classColor = true,
+			tot_raidIcon = false,	
 		}
 	}
 }
-
---[[
-	if not upneDB then
-		upneDB = {}
-		upneDB.version = "20200414"
-		upneDB.interrupt = true
-		upneDB.interruptChannel = "PARTY"
-		upneDB.tooltipItemLevel = true
-		upneDB.tooltipSrc = true
-		upneDB.setShamanColor = true
-	end
-]]
 
 local playerGUID
 local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
@@ -42,9 +32,6 @@ local MSG_SUFFIX = " |cff00ff00■|r"
 local p = function(str) print(MSG_PREFIX..str..MSG_SUFFIX) end
 
 function Upnemod:OnInitialize()
-	if upneDB and upneDB.version then
-		-- migration
-	end
 	self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
 	self.db = self.wholeDb.realm[player]
 	self:BuildOptions()
@@ -66,6 +53,7 @@ function Upnemod:OnInitialize()
 	self:SetTooltipIlvl()
 	self:SetTooltipAuraSrc()
 	self:SetTradeClassColor()
+	self:SetToTRaidIcon()
 
 	-- Slash Commands
 	SLASH_UPNE1 = "/ㅇㅇ"
@@ -125,6 +113,31 @@ function Upnemod:SetShamanColor()
 end
 
 function Upnemod:SetTooltipIlvl()
+	local function GameTooltip_Ilvl(tooltip, ...)
+		local itemLink = tooltip:GetItem()
+		if itemLink then
+			local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+			local itemID, _ = GetItemInfoInstant(itemLink)
+
+			if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
+				tooltip:AddDoubleLine("아이템 레벨   |cffffffff" .. itemLevel .. "|r", "(ID:  |cffffffff" .. itemID .. "|r)")
+			end
+		end
+	end
+
+	local function GameTooltip_Ilvl_Narrow(tooltip, ...)
+		local itemLink = tooltip:GetItem()
+		if itemLink then
+			local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+			local itemID, _ = GetItemInfoInstant(itemLink)
+
+			if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
+				tooltip:AddLine("아이템 레벨 |cffffffff" .. itemLevel .. "|r")
+				tooltip:AddLine("아이템 ID |cffffffff" .. itemID .. "|r")
+			end
+		end
+	end
+
 	if self.db.tooltip_ilvl then
 		self:SetTooltipHandler(GameTooltip, GameTooltip_Ilvl)
 		self:SetTooltipHandler(ItemRefTooltip, GameTooltip_Ilvl)
@@ -160,6 +173,20 @@ function Upnemod:SetTooltipHandler(tooltip, func)
 end
 
 function Upnemod:SetTooltipAuraSrc()
+	local function upne_AuraHandler(uaf, gt, ...)
+		local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
+		if src then
+			local name, _ = UnitName(src)
+			local _, class, _ = UnitClass(src)
+			local classColor = RAID_CLASS_COLORS[class]
+			if classColor then
+				name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
+			end
+			gt:AddDoubleLine(" ", "by "..name)
+			gt:Show()
+		end
+	end
+
 	if self.db.tooltip_aurasrc then
 		GameTooltip.SetUnitAura = function(gt, ...)
 			self.sua(gt, ...)
@@ -192,19 +219,7 @@ function Upnemod:SetTradeClassColor()
 	end
 end
 
-local function upne_AuraHandler(uaf, gt, ...)
-	local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
-	if src then
-		local name, _ = UnitName(src)
-		local _, class, _ = UnitClass(src)
-		local classColor = RAID_CLASS_COLORS[class]
-		if classColor then
-			name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
-		end
-		gt:AddDoubleLine(" ", "by "..name)
-		gt:Show()
-	end
-end
+
 
 --[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
   COMBAT_LOG_EVENT_UNFILTERED
@@ -260,42 +275,60 @@ end
 	= GetItemInfoInstant(itemID or "itemString" or "itemName" or "itemLink") 
 ]]
 
-local function GameTooltip_Ilvl(tooltip, ...)
-	local itemLink = tooltip:GetItem()
-	if itemLink then
-		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-		local itemID, _ = GetItemInfoInstant(itemLink)
-
-		if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-			tooltip:AddDoubleLine("아이템 레벨   |cffffffff" .. itemLevel .. "|r", "(ID:  |cffffffff" .. itemID .. "|r)")
-		end
-	end
-end
-
-local function GameTooltip_Ilvl_Narrow(tooltip, ...)
-	local itemLink = tooltip:GetItem()
-	if itemLink then
-		local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-		local itemID, _ = GetItemInfoInstant(itemLink)
-
-		if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-			tooltip:AddLine("아이템 레벨 |cffffffff" .. itemLevel .. "|r")
-			tooltip:AddLine("아이템 ID |cffffffff" .. itemID .. "|r")
-		end
-	end
-end
-
 function Upnemod:TRADE_SHOW(...)
 	TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
 end
 
+function Upnemod:SetToTRaidIcon()
+
+	if self.db.tot_raidIcon then
+		p("대상의 대상 공격대 아이콘 표시(전환이 느림)")
+
+		local t = TargetFrameToT
+		if not t.raidTargetIcon then
+			t.raidTargetIcon = t:CreateTexture()
+			local tx = t.raidTargetIcon
+			tx:SetPoint("LEFT", t, "LEFT", 8, 0)
+			tx:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
+			tx:SetWidth(16)
+			tx:SetHeight(16)
+			tx:SetDrawLayer("Artwork",0)
+			tx:Show()
+		end
+		--hooksecurefunc("TargetofTarget_Update",upne_TargetofTarget_Update)
+		hooksecurefunc("UnitFrame_OnEvent",upne_TargetofTarget_Update)
+	else
+		p("대상의 대상 공격대 아이콘 끄기(재시작 필요)")
+	end
+
+end
+
+function upne_TargetofTarget_Update(self, elapsed)
+	local t = TargetFrameToT
+	local index = GetRaidTargetIndex("targettarget")
+	if index then
+		SetRaidTargetIconTexture(t.raidTargetIcon, index)
+	else
+		SetRaidTargetIconTexture(t.raidTargetIcon, 0)
+	end
+end
+--[[
+function upne_TargetofTarget_Update(self, elapsed)
+	local index = GetRaidTargetIndex(self.unit)
+	if index then
+		SetRaidTargetIconTexture(self.raidTargetIcon, index)
+	else
+		SetRaidTargetIconTexture(self.raidTargetIcon, 0)
+	end
+end
+]]
 function Upnemod:BuildOptions()
 	local channelListOption = {
-		["일반"] = "SAY",
-		["외침"] = "YELL",
-		["파티"] = "PARTY",
-		["공격대"] = "RAID",
-		["공격대경보"] = "RAID_WARNING",
+		["SAY"] = "일반",
+		["YELL"] = "외침",
+		["PARTY"] = "파티",
+		["RAID"] = "공격대",
+		["RAID_WARNING"] = "공격대경보",
 	}
 	self.optionsTable = {
 		name = self.name,
@@ -323,6 +356,7 @@ function Upnemod:BuildOptions()
 				name = '주술사를 파란색으로 표시',
 				type = 'toggle',
 				order = 201,
+				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetShamanColor() end,
 			},
@@ -330,6 +364,7 @@ function Upnemod:BuildOptions()
 				name = '툴팁에 아이템 레벨/ID 표시',
 				type = 'toggle',
 				order = 301,
+				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTooltipIlvl() end,
 			},
@@ -337,6 +372,7 @@ function Upnemod:BuildOptions()
 				name = '버프/디버프 툴팁에 시전자 표시',
 				type = 'toggle',
 				order = 401,
+				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTooltipAuraSrc() end,
 			},
@@ -344,9 +380,19 @@ function Upnemod:BuildOptions()
 				name = '거래창에서 상대방 직업색상 보이기',
 				type = 'toggle',
 				order = 501,
+				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTradeClassColor() end,
 			},
+			tot_raidIcon = {
+				name = '대상의 대상에 공격대 아이콘 표시',
+				type = 'toggle',
+				order = 501,
+				width = "full",
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetToTRaidIcon() end,
+			},
+
 		}
 	}
 end
