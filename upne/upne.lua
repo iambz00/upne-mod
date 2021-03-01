@@ -10,18 +10,26 @@ Upnemod.channelList = {
 	["INSTANCE"] = "INSTANCE",	["I"] = "INSTANCE",	["ㅑ"] = "INSTANCE",
 	["RAID_WARNING"] = "RAID_WARNING",	["RW"] = "RAID_WARNING",	["경보"] = "RAID_WARNING",
 }
+Upnemod.channelListOption = {
+	["SAY"] = "일반",
+	["YELL"] = "외침",
+	["PARTY"] = "파티",
+	["RAID"] = "공격대",
+	["RAID_WARNING"] = "공격대경보",
+}
+
 local player = UnitName"player"
 
 Upnemod.dbDefault = {
 	realm = {
 		[player] = {
-			announceInterrupt = false,
+			announceInterrupt = true,
 			announceChannel = "SAY",
 			shamanColor = true,
 			tooltip_ilvl = true,
 			tooltip_aurasrc = true,
 			trade_classColor = true,
-			tot_raidIcon = false,	
+			tot_raidIcon = true,	
 		}
 	}
 }
@@ -94,7 +102,7 @@ end
 function Upnemod:SetAnnounceInterrupt()
 	if self.db.announceInterrupt then
 		Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-		p("차단 알림 - " .. self.db.announceChannel)
+		p("차단 알림 - " .. self.channelListOption[self.db.announceChannel])
 	else
 		Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		p("차단 알림 해제")
@@ -326,13 +334,6 @@ function upne_TargetofTarget_Update(self, elapsed)
 end
 ]]
 function Upnemod:BuildOptions()
-	local channelListOption = {
-		["SAY"] = "일반",
-		["YELL"] = "외침",
-		["PARTY"] = "파티",
-		["RAID"] = "공격대",
-		["RAID_WARNING"] = "공격대경보",
-	}
 	self.optionsTable = {
 		name = self.name,
 		handler = self,
@@ -350,7 +351,7 @@ function Upnemod:BuildOptions()
 			announceChannel = {
 				name = '차단알림 채널',
 				type = 'select',
-				values = channelListOption,
+				values = self.channelListOption,
 				order = 102,
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetAnnounceInterrupt() end,
