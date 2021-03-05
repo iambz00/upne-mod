@@ -93,10 +93,6 @@ function Upnemod:OnInitialize()
 		RunScript(msg)
 		seterrorhandler(origHandler)
 	end
-
-	if InvenRaidFrames3 and InvenRaidFrames3.Hide and InvenRaidFrames3.Show then
-		self:RegisterEvent("GROUP_ROSTER_UPDATE")
-	end
 end
 
 function Upnemod:SetAnnounceInterrupt()
@@ -399,9 +395,4 @@ function Upnemod:BuildOptions()
 
 		}
 	}
-end
-
-function Upnemod:GROUP_ROSTER_UPDATE(...)
-	InvenRaidFrames3:Hide()
-	InvenRaidFrames3:Show() 
 end
