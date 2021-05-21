@@ -25,7 +25,6 @@ Upnemod.dbDefault = {
 		[player] = {
 			announceInterrupt = true,
 			announceChannel = "SAY",
-			shamanColor = true,
 			tooltip_ilvl = true,
 			tooltip_aurasrc = true,
 			trade_classColor = true,
@@ -46,8 +45,6 @@ function Upnemod:OnInitialize()
 
 	playerGUID = UnitGUID"player"
 	self.tooltipHandler = {}
-	self.oldShaman = { r = RAID_CLASS_COLORS.SHAMAN.r, g = RAID_CLASS_COLORS.SHAMAN.g, b = RAID_CLASS_COLORS.SHAMAN.b }
---	this should be [r = 0.96, g = 0.55, b = 0.73]
 
 	LibStub("AceConfig-3.0"):RegisterOptionsTable(self.name, self.optionsTable)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
@@ -57,7 +54,6 @@ function Upnemod:OnInitialize()
 	self.sud = GameTooltip.SetUnitDebuff
 
 	self:SetAnnounceInterrupt()
-	self:SetShamanColor()
 	self:SetTooltipIlvl()
 	self:SetTooltipAuraSrc()
 	self:SetTradeClassColor()
@@ -102,20 +98,6 @@ function Upnemod:SetAnnounceInterrupt()
 	else
 		Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		p("차단 알림 해제")
-	end
-end
-
-function Upnemod:SetShamanColor()
-	if self.db.shamanColor then
-		RAID_CLASS_COLORS.SHAMAN.r = 0.0
-		RAID_CLASS_COLORS.SHAMAN.g = 0.44
-		RAID_CLASS_COLORS.SHAMAN.b = 0.87
-		p("주술사 색상을 파랗게 표시")
-	else
-		RAID_CLASS_COLORS.SHAMAN.r = self.oldShaman.r
-		RAID_CLASS_COLORS.SHAMAN.g = self.oldShaman.g
-		RAID_CLASS_COLORS.SHAMAN.b = self.oldShaman.b
-		p("주술사 색상을 원래대로")
 	end
 end
 
@@ -351,14 +333,6 @@ function Upnemod:BuildOptions()
 				order = 102,
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetAnnounceInterrupt() end,
-			},
-			shamanColor = {
-				name = '주술사를 파란색으로 표시',
-				type = 'toggle',
-				order = 201,
-				width = "full",
-				set = function(info, value) self.db[info[#info]] = value
-						self:SetShamanColor() end,
 			},
 			tooltip_ilvl = {
 				name = '툴팁에 아이템 레벨/ID 표시',
