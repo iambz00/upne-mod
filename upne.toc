@@ -1,6 +1,6 @@
-﻿## Interface: 20501
+## Interface: 20501
 ## Title: upne
-## Version: 1.2.0
+## Version: 1.2.1
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB

@@ -1,4 +1,4 @@
-﻿local addonName, addon = ...
+local addonName, addon = ...
 Upnemod = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0")
 Upnemod.name = addonName
 Upnemod.version = GetAddOnMetadata(addonName, "Version")
@@ -271,9 +271,21 @@ end
 function Upnemod:SetToTRaidIcon()
 
 	if self.db.tot_raidIcon then
-		p("대상의 대상 공격대 아이콘 표시(전환이 느림)")
+		p("대상의 대상/주시대상의 대상 공격대 아이콘 표시(전환이 느림)")
 
 		local t = TargetFrameToT
+		if not t.raidTargetIcon then
+			t.raidTargetIcon = t:CreateTexture()
+			local tx = t.raidTargetIcon
+			tx:SetPoint("LEFT", t, "LEFT", 8, 0)
+			tx:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
+			tx:SetWidth(16)
+			tx:SetHeight(16)
+			tx:SetDrawLayer("Artwork",0)
+			tx:Show()
+		end
+
+		t = FocusFrameToT
 		if not t.raidTargetIcon then
 			t.raidTargetIcon = t:CreateTexture()
 			local tx = t.raidTargetIcon
@@ -287,30 +299,27 @@ function Upnemod:SetToTRaidIcon()
 		--hooksecurefunc("TargetofTarget_Update",upne_TargetofTarget_Update)
 		hooksecurefunc("UnitFrame_OnEvent",upne_TargetofTarget_Update)
 	else
-		p("대상의 대상 공격대 아이콘 끄기(재시작 필요)")
+		p("대상의 대상/주시대상의 대상 공격대 아이콘 끄기(재시작 필요)")
 	end
 
 end
 
 function upne_TargetofTarget_Update(self, elapsed)
-	local t = TargetFrameToT
 	local index = GetRaidTargetIndex("targettarget")
 	if index then
-		SetRaidTargetIconTexture(t.raidTargetIcon, index)
+		SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, index)
 	else
-		SetRaidTargetIconTexture(t.raidTargetIcon, 0)
+		SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, 0)
 	end
-end
---[[
-function upne_TargetofTarget_Update(self, elapsed)
-	local index = GetRaidTargetIndex(self.unit)
+
+	index = GetRaidTargetIndex("focustarget")
 	if index then
-		SetRaidTargetIconTexture(self.raidTargetIcon, index)
+		SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, index)
 	else
-		SetRaidTargetIconTexture(self.raidTargetIcon, 0)
+		SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, 0)
 	end
 end
-]]
+
 function Upnemod:BuildOptions()
 	self.optionsTable = {
 		name = self.name,
@@ -359,7 +368,7 @@ function Upnemod:BuildOptions()
 						self:SetTradeClassColor() end,
 			},
 			tot_raidIcon = {
-				name = '대상의 대상에 공격대 아이콘 표시',
+				name = '대상의 대상/주시대상의 대상 공격대 아이콘 표시',
 				type = 'toggle',
 				order = 501,
 				width = "full",
