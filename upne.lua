@@ -26,7 +26,8 @@ Upnemod.dbDefault = {
 			announceInterrupt = true,
 			announceChannel = "SAY",
 			tooltip_ilvl = true,
-			tooltip_aurasrc = true,
+			tooltip_auraSrc = true,
+			tooltip_auraId = true,
 			trade_classColor = true,
 			tot_raidIcon = true,	
 		}
@@ -49,13 +50,10 @@ function Upnemod:OnInitialize()
 	LibStub("AceConfig-3.0"):RegisterOptionsTable(self.name, self.optionsTable)
 	LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
-	self.sua = GameTooltip.SetUnitAura
-	self.sub = GameTooltip.SetUnitBuff
-	self.sud = GameTooltip.SetUnitDebuff
+	self:SetTooltipAura()
 
 	self:SetAnnounceInterrupt()
 	self:SetTooltipIlvl()
-	self:SetTooltipAuraSrc()
 	self:SetTradeClassColor()
 	self:SetToTRaidIcon()
 
@@ -86,6 +84,18 @@ function Upnemod:OnInitialize()
 			print("잘못된 계산식입니다.")
 		end)
 		msg = "local answer="..msg..";if answer then SendChatMessage('계산: "..msg.." = '..answer,'SAY') end"
+		RunScript(msg)
+		seterrorhandler(origHandler)
+	end
+	-- Silent calculating
+	SLASH_CALCU1 = "/계산2"
+	SLASH_CALCU2 = "/calc2"
+	SlashCmdList["CALCU"] = function(msg)
+		local origHandler = geterrorhandler()
+		seterrorhandler(function (msg)
+			print("잘못된 계산식입니다.")
+		end)
+		msg = "local answer="..msg..";if answer then print('계산: "..msg.." = '..answer) end"
 		RunScript(msg)
 		seterrorhandler(origHandler)
 	end
@@ -161,22 +171,32 @@ function Upnemod:SetTooltipHandler(tooltip, func)
 	end
 end
 
-function Upnemod:SetTooltipAuraSrc()
+function Upnemod:SetTooltipAura()
 	local function upne_AuraHandler(uaf, gt, ...)
-		local _, _, _, _, _, _, src = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
-		if src then
-			local name, _ = UnitName(src)
+		local _, _, _, _, _, _, src, _, _, auraId = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
+		local db = self.db
+		local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
+		local right = ""
+		if db.tooltip_auraSrc and src then
+			right, _ = UnitName(src)
 			local _, class, _ = UnitClass(src)
 			local classColor = RAID_CLASS_COLORS[class]
 			if classColor then
-				name = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, name)
+				right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
 			end
-			gt:AddDoubleLine(" ", "by "..name)
+			right = "by "..right
+		end
+		if db.tooltip_auraId or db.tooltip_auraSrc then
+			gt:AddDoubleLine(left, right)
 			gt:Show()
 		end
 	end
 
-	if self.db.tooltip_aurasrc then
+	self.sua = GameTooltip.SetUnitAura
+	self.sub = GameTooltip.SetUnitBuff
+	self.sud = GameTooltip.SetUnitDebuff
+
+	if self.db.tooltip_auraSrc then
 		GameTooltip.SetUnitAura = function(gt, ...)
 			self.sua(gt, ...)
 			upne_AuraHandler(UnitAura, gt, ...)
@@ -189,26 +209,16 @@ function Upnemod:SetTooltipAuraSrc()
 			self.sud(gt, ...)
 			upne_AuraHandler(UnitDebuff, gt, ...)
 		end
-		p("툴팁에 버프/디버프 시전자 표시")
-	else
-		GameTooltip.SetUnitAura = self.sua
-		GameTooltip.SetUnitBuff = self.sub
-		GameTooltip.SetUnitDebuff = self.sud
-		p("툴팁에 버프/디버프 시전자 끄기")
 	end
 end
 
 function Upnemod:SetTradeClassColor()
 	if self.db.trade_classColor then
 		self:RegisterEvent("TRADE_SHOW")
-		p("거래 상대 직업색상 보기")
 	else
 		self:UnregisterEvent("TRADE_SHOW")
-		p("거래 상대 직업색상 끄기")
 	end
 end
-
-
 
 --[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
   COMBAT_LOG_EVENT_UNFILTERED
@@ -269,10 +279,7 @@ function Upnemod:TRADE_SHOW(...)
 end
 
 function Upnemod:SetToTRaidIcon()
-
 	if self.db.tot_raidIcon then
-		p("대상의 대상/주시대상의 대상 공격대 아이콘 표시(전환이 느림)")
-
 		local t = TargetFrameToT
 		if not t.raidTargetIcon then
 			t.raidTargetIcon = t:CreateTexture()
@@ -298,10 +305,7 @@ function Upnemod:SetToTRaidIcon()
 		end
 		--hooksecurefunc("TargetofTarget_Update",upne_TargetofTarget_Update)
 		hooksecurefunc("UnitFrame_OnEvent",upne_TargetofTarget_Update)
-	else
-		p("대상의 대상/주시대상의 대상 공격대 아이콘 끄기(재시작 필요)")
 	end
-
 end
 
 function upne_TargetofTarget_Update(self, elapsed)
@@ -351,13 +355,17 @@ function Upnemod:BuildOptions()
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTooltipIlvl() end,
 			},
-			tooltip_aurasrc = {
-				name = '버프/디버프 툴팁에 시전자 표시',
+			tooltip_auraId = {
+				name = '버프/디버프 툴팁에 주문ID 표시',
 				type = 'toggle',
 				order = 401,
 				width = "full",
-				set = function(info, value) self.db[info[#info]] = value
-						self:SetTooltipAuraSrc() end,
+			},
+			tooltip_auraSrc = {
+				name = '버프/디버프 툴팁에 시전자 표시',
+				type = 'toggle',
+				order = 402,
+				width = "full",
 			},
 			trade_classColor = {
 				name = '거래창에서 상대방 직업색상 보이기',
