@@ -175,20 +175,22 @@ function Upnemod:SetTooltipAura()
 	local function upne_AuraHandler(uaf, gt, ...)
 		local _, _, _, _, _, _, src, _, _, auraId = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
 		local db = self.db
-		local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
-		local right = ""
-		if db.tooltip_auraSrc and src then
-			right, _ = UnitName(src)
-			local _, class, _ = UnitClass(src)
-			local classColor = RAID_CLASS_COLORS[class]
-			if classColor then
-				right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+		if auraId then
+			local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
+			local right = ""
+			if db.tooltip_auraSrc and src then
+				right, _ = UnitName(src)
+				local _, class, _ = UnitClass(src)
+				local classColor = RAID_CLASS_COLORS[class]
+				if classColor then
+					right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+				end
+				right = "by "..right
 			end
-			right = "by "..right
-		end
-		if db.tooltip_auraId or db.tooltip_auraSrc then
-			gt:AddDoubleLine(left, right)
-			gt:Show()
+			if db.tooltip_auraId or db.tooltip_auraSrc then
+				gt:AddDoubleLine(left, right)
+				gt:Show()
+			end
 		end
 	end
 
