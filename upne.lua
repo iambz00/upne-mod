@@ -18,6 +18,10 @@ Upnemod.channelListOption = {
 	["RAID_WARNING"] = "공격대경보",
 }
 
+BINDING_HEADER_UPNEMOD = "upnemod";
+BINDING_NAME_UPNEMOD_INSPECT_TARGET = "대상 살펴보기 ";
+BINDING_NAME_UPNEMOD_INSPECT_MOUSEOVER = "마우스오버 살펴보기";
+
 local player = UnitName"player"
 
 Upnemod.dbDefault = {

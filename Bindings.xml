@@ -1,0 +1,12 @@
+<Bindings>
+	<Binding name="UPNEMOD_INSPECT_TARGET" header="UPNEMOD" category="ADDONS">
+		if (UnitPlayerControlled("target") and CheckInteractDistance("target", 1) and not UnitIsUnit("player", "target")) then
+			InspectUnit("target")
+		end
+	</Binding>
+	<Binding name="UPNEMOD_INSPECT_MOUSEOVER">
+		if (UnitPlayerControlled("mouseover") and CheckInteractDistance("mouseover", 1) and not UnitIsUnit("player", "mouseover")) then
+			InspectUnit("mouseover")
+		end
+	</Binding>
+</Bindings>
