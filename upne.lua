@@ -33,13 +33,14 @@ Upnemod.dbDefault = {
 			tooltip_auraSrc = true,
 			tooltip_auraId = true,
 			trade_classColor = true,
-			tot_raidIcon = true,	
+			tot_raidIcon = true,
+			fixCombatText = true,
 		}
 	}
 }
 
 local playerGUID
-local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
+local MSG_PREFIX = "|cff00ff00■ |cffffaa00upnemod|r "
 local MSG_SUFFIX = " |cff00ff00■|r"
 local p = function(str) print(MSG_PREFIX..str..MSG_SUFFIX) end
 
@@ -60,6 +61,7 @@ function Upnemod:OnInitialize()
 	self:SetTooltipIlvl()
 	self:SetTradeClassColor()
 	self:SetToTRaidIcon()
+	self:SetFixCombatText()
 
 	-- Slash Commands
 	SLASH_UPNE1 = "/ㅇㅇ"
@@ -262,9 +264,9 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
 		-- RaidTarget end
 
 		if (not IsInGroup()) then
-			p("차단 -> "..raidTarget..destName.."의 ["..extraSpellName .."]")
+			p("차단 -> "..raidTarget..destName.."의 "..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName) .."")
 		else
-			SendChatMessage("차단 -> "..raidTarget..destName.."의 ["..extraSpellName .."]", self.db.announceChannel)
+			SendChatMessage("차단 -> "..raidTarget..destName.."의 "..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName), self.db.announceChannel)
 		end
 --	elseif combatEvent == "SPELL_AURA_APPLIED" and UnitIsPlayer(sourceGUID) and destGUID == UnitGUID("player") then
 --		print(" * 오라 받음 [" .. sourceName .. "] 의 [" .. spellName .. "]")
@@ -330,6 +332,17 @@ function upne_TargetofTarget_Update(self, elapsed)
 	end
 end
 
+function Upnemod:SetFixCombatText()
+	if self.db.fixCombatText then
+		C_Timer.NewTicker(5, function()
+			if GetCVar("enableFloatingCombatText") ~= "1" then
+				SetCVar("enableFloatingCombatText", 1)
+				p("전투메시지 표시가 꺼져 있어서 켰습니다.")
+			end
+		end, 4)
+	end
+end
+
 function Upnemod:BuildOptions()
 	self.optionsTable = {
 		name = self.name,
@@ -356,7 +369,7 @@ function Upnemod:BuildOptions()
 			tooltip_ilvl = {
 				name = '툴팁에 아이템 레벨/ID 표시',
 				type = 'toggle',
-				order = 301,
+				order = 201,
 				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTooltipIlvl() end,
@@ -364,19 +377,19 @@ function Upnemod:BuildOptions()
 			tooltip_auraId = {
 				name = '버프/디버프 툴팁에 주문ID 표시',
 				type = 'toggle',
-				order = 401,
+				order = 301,
 				width = "full",
 			},
 			tooltip_auraSrc = {
 				name = '버프/디버프 툴팁에 시전자 표시',
 				type = 'toggle',
-				order = 402,
+				order = 302,
 				width = "full",
 			},
 			trade_classColor = {
 				name = '거래창에서 상대방 직업색상 보이기',
 				type = 'toggle',
-				order = 501,
+				order = 401,
 				width = "full",
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetTradeClassColor() end,
@@ -389,7 +402,15 @@ function Upnemod:BuildOptions()
 				set = function(info, value) self.db[info[#info]] = value
 						self:SetToTRaidIcon() end,
 			},
-
+			fixCombatText = {
+				name = '전투메시지 표시하기 고정',
+				type = 'toggle',
+				order = 601,
+				width = 'full',
+				desc = '간혹 전투메시지 표시가 꺼져 있는 현상을 방지',
+				set = function(info, value) self.db[info[#info]] = value
+						self:SetFixCombatText() end,
+			},
 		}
 	}
 end
