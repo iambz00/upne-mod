@@ -85,25 +85,39 @@ function Upnemod:OnInitialize()
 	SLASH_CALC1 = "/계산"
 	SLASH_CALC2 = "/calc"
 	SlashCmdList["CALC"] = function(msg)
-		local origHandler = geterrorhandler()
+		local func, err = load("return "..msg)
+		if func then
+			local ok, result = pcall(func)
+			if ok then
+				SendChatMessage("계산: "..msg.." = "..result, "SAY")
+			else
+				p("계산 오류")
+			end
+			p("계산 오류")
+		end
+--[[		local origHandler = geterrorhandler()
 		seterrorhandler(function (msg)
 			print("잘못된 계산식입니다.")
 		end)
 		msg = "local answer="..msg..";if answer then SendChatMessage('계산: "..msg.." = '..answer,'SAY') end"
 		RunScript(msg)
 		seterrorhandler(origHandler)
+]]
 	end
 	-- Silent calculating
 	SLASH_CALCU1 = "/계산2"
 	SLASH_CALCU2 = "/calc2"
 	SlashCmdList["CALCU"] = function(msg)
-		local origHandler = geterrorhandler()
-		seterrorhandler(function (msg)
-			print("잘못된 계산식입니다.")
-		end)
-		msg = "local answer="..msg..";if answer then print('계산: "..msg.." = '..answer) end"
-		RunScript(msg)
-		seterrorhandler(origHandler)
+		local func, err = load("return "..msg)
+		if func then
+			local ok, result = pcall(func)
+			if ok then
+				p("계산: "..msg.." = "..result)
+			else
+				p("계산 오류")
+			end
+			p("계산 오류")
+		end
 	end
 end
 
@@ -337,6 +351,7 @@ function Upnemod:SetFixCombatText()
 		C_Timer.NewTicker(5, function()
 			if GetCVar("enableFloatingCombatText") ~= "1" then
 				SetCVar("enableFloatingCombatText", 1)
+				InterfaceOptionsCombatPanelEnableFloatingCombatText.setFunc("1")
 				p("전투메시지 표시가 꺼져 있어서 켰습니다.")
 			end
 		end, 4)
