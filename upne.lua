@@ -36,15 +36,14 @@ Upnemod.dbDefault = {
             tot_raidIcon = true,
             fixCombatText = true,
             callme = false,
-            callmeSound = "568197",
+            callmeSound = 568197,
         }
     }
 }
 
 local playerGUID
 local MSG_PREFIX = "|cff00ff00■ |cffffaa00upnemod|r "
-local MSG_SUFFIX = " |cff00ff00■|r"
-local p = function(str) print(MSG_PREFIX..str..MSG_SUFFIX) end
+local p = function(str, ...) print(MSG_PREFIX..str, ...) end
 
 function Upnemod:OnInitialize()
     self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
@@ -58,7 +57,6 @@ function Upnemod:OnInitialize()
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
     self:SetTooltipAura()
-
     self:SetAnnounceInterrupt()
     self:SetTooltipIlvl()
     self:SetTradeClassColor()
@@ -181,29 +179,29 @@ function Upnemod:SetTooltipHandler(tooltip, func)
     end
 end
 
-function Upnemod:SetTooltipAura()
-    local function upne_AuraHandler(uaf, gt, ...)
-        local _, _, _, _, _, _, src, _, _, auraId = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
-        local db = self.db
-        if auraId then
-            local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
-            local right = ""
-            if db.tooltip_auraSrc and src then
-                right, _ = UnitName(src)
-                local _, class, _ = UnitClass(src)
-                local classColor = RAID_CLASS_COLORS[class]
-                if classColor then
-                    right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
-                end
-                right = "by "..right
+local function upne_AuraHandler(uaf, gt, ...)
+    local _, _, _, _, _, _, src, _, _, auraId = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
+    local db = Upnemod.db
+    if auraId then
+        local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
+        local right = ""
+        if db.tooltip_auraSrc and src then
+            right, _ = UnitName(src)
+            local _, class, _ = UnitClass(src)
+            local classColor = RAID_CLASS_COLORS[class]
+            if classColor then
+                right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
             end
-            if db.tooltip_auraId or db.tooltip_auraSrc then
-                gt:AddDoubleLine(left, right)
-                gt:Show()
-            end
+            right = "by "..right
+        end
+        if db.tooltip_auraId or db.tooltip_auraSrc then
+            gt:AddDoubleLine(left, right)
+            gt:Show()
         end
     end
+end
 
+function Upnemod:SetTooltipAura()
     self.sua = GameTooltip.SetUnitAura
     self.sub = GameTooltip.SetUnitBuff
     self.sud = GameTooltip.SetUnitDebuff
@@ -321,19 +319,8 @@ function Upnemod:SetToTRaidIcon()
 end
 
 function upne_TargetofTarget_Update(self, elapsed)
-    local index = GetRaidTargetIndex("targettarget")
-    if index then
-        SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, index)
-    else
-        SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, 0)
-    end
-
-    index = GetRaidTargetIndex("focustarget")
-    if index then
-        SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, index)
-    else
-        SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, 0)
-    end
+    SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
+    SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
 end
 
 function Upnemod:SetFixCombatText()
@@ -341,7 +328,7 @@ function Upnemod:SetFixCombatText()
         C_Timer.NewTicker(5, function()
             if GetCVar("enableFloatingCombatText") ~= "1" then
                 SetCVar("enableFloatingCombatText", 1)
-                p("전투메시지 표시가 꺼져 있어서 켰습니다.")
+                p("전투메시지 표시가 꺼져 있어서 켰습니다. 리로드 또는 재접속해야 적용됩니다.")
             end
         end, 4)
     end
@@ -383,7 +370,7 @@ end
 
 function Upnemod:OnChatMsg(event, msg, author)
     local name = author and author:match("^([^-]*)-") or ""
-    if msg:match(player) then and (name ~= player) then
+    if msg:match(player) and (name ~= player) then
         PlaySoundFile(self.db.callmeSound)
     end
 end
