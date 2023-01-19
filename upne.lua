@@ -285,7 +285,7 @@ end
 ]]
 
 function Upnemod:TRADE_SHOW(...)
-    TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
+    --TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
 end
 
 function Upnemod:SetToTRaidIcon()
