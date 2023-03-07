@@ -1,10 +1,10 @@
 ## Interface: 30401
 ## Title: upne
-## Version: 1.4.0.1
+## Version: 1.4.1
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, LibGearScore
 ## DefaultState: enabled
 
 #@no-lib-strip@
@@ -14,6 +14,7 @@ Libs\AceAddon-3.0\AceAddon-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDB-3.0\AceDB-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
+Libs\LibGearScore-1.0\LibGearScore.lua
 #@end-no-lib-strip@
 
 upne.lua

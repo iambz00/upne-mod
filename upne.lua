@@ -2,6 +2,9 @@ local addonName, addon = ...
 Upnemod = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0")
 Upnemod.name = addonName
 Upnemod.version = GetAddOnMetadata(addonName, "Version")
+
+local LibGearScore = LibStub:GetLibrary("LibGearScore.1000", true)
+
 Upnemod.channelList = {
     ["SAY"] = "SAY",	["S"] = "SAY",	["ㄴ"] = "SAY",	["일반"] = "SAY",
     ["YELL"] = "YELL",	["Y"] = "YELL",	["ㅛ"] = "YELL",	["외침"] = "YELL",
@@ -37,6 +40,8 @@ Upnemod.dbDefault = {
             fixCombatText = true,
             callme = false,
             callmeSound = 568197,
+            tooltip_gs = true,
+            inspect_gs = true,
         }
     }
 }
@@ -59,10 +64,12 @@ function Upnemod:OnInitialize()
     self:SetTooltipAura()
     self:SetAnnounceInterrupt()
     self:SetTooltipIlvl()
+    self:SetTooltipGearScore()
     self:SetTradeClassColor()
     self:SetToTRaidIcon()
     self:SetFixCombatText()
     self:SetCallme()
+    self:SetInspectGearScore()
 
     -- Slash Commands
     SLASH_UPNE1 = "/ㅇㅇ"
@@ -119,6 +126,25 @@ function Upnemod:SetAnnounceInterrupt()
     end
 end
 
+function Upnemod:SetTooltipHandler(tooltip, scriptName, func)
+    if func then
+        local orgHandler = tooltip:GetScript(scriptName)
+        if orgHandler then
+            self.tooltipHandler[tooltip:GetName()] = orgHandler
+            tooltip:HookScript(scriptName, func)
+        else
+            tooltip:SetScript(scriptName, func)
+        end
+    else
+        local orgHandler = self.tooltipHandler[tooltip:GetName()]
+        if orgHandler then
+            tooltip:SetScript(scriptName, orgHandler)
+        else
+            tooltip:SetScript(scriptName, nil)
+        end
+    end
+end
+
 function Upnemod:SetTooltipIlvl()
     local function GameTooltip_Ilvl(tooltip, ...)
         local itemLink = tooltip:GetItem()
@@ -146,36 +172,42 @@ function Upnemod:SetTooltipIlvl()
     end
 
     if self.db.tooltip_ilvl then
-        self:SetTooltipHandler(GameTooltip, GameTooltip_Ilvl)
-        self:SetTooltipHandler(ItemRefTooltip, GameTooltip_Ilvl)
-        self:SetTooltipHandler(ShoppingTooltip1, GameTooltip_Ilvl_Narrow)
-        self:SetTooltipHandler(ShoppingTooltip2, GameTooltip_Ilvl_Narrow)
+        self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
+        self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
+        self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
+        self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
         p("툴팁에 아이템 레벨 표시")
     else
-        self:SetTooltipHandler(GameTooltip, nil)
-        self:SetTooltipHandler(ItemRefTooltip, nil)
-        self:SetTooltipHandler(ShoppingTooltip1, nil)
-        self:SetTooltipHandler(ShoppingTooltip2, nil)
+        self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", nil)
+        self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", nil)
+        self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
+        self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
         p("툴팁에 아이템 레벨 끄기")
     end
 end
 
-function Upnemod:SetTooltipHandler(tooltip, func)
-    if func then
-        local orgHandler = tooltip:GetScript("OnTooltipSetItem")
-        if orgHandler then
-            self.tooltipHandler[tooltip:GetName()] = orgHandler
-            tooltip:HookScript("OnTooltipSetItem", func)
-        else
-            tooltip:SetScript("OnTooltipSetItem", func)
+function Upnemod:SetTooltipGearScore()
+    local function GameTooltip_GearScore(tooltip, ...)
+        local _, unitID = tooltip:GetUnit()
+        if unitID then
+            local guid, gearScore = LibGearScore:GetScore(unitID)
+            if gearScore then
+                local gs = gearScore.GearScore or 0
+                if tonumber(gs) > 0 then
+                    gs = gearScore.Color and gearScore.Color:WrapTextInColorCode(gs) or gs
+                    local ilvl = gearScore.AvgItemLevel or 0
+                    --tooltip:AddDoubleLine(gs, ilvl)
+                    tooltip:AddLine(gs .."|cff9d9d9d/|r|cffffffff".. ilvl.."|r")
+                end
+            end
         end
+    end
+    if self.db.tooltip_gs then
+        self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", GameTooltip_GearScore)
+        p("툴팁에 기어스코어 표시 - 살펴보기했던 대상만 적용")
     else
-        local orgHandler = self.tooltipHandler[tooltip:GetName()]
-        if orgHandler then
-            tooltip:SetScript("OnTooltipSetItem", orgHandler)
-        else
-            tooltip:SetScript("OnTooltipSetItem", nil)
-        end
+        self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", nil)
+        p("툴팁에 기어스코어 끄기")
     end
 end
 
@@ -323,6 +355,44 @@ function upne_TargetofTarget_Update(self, elapsed)
     SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
 end
 
+function Upnemod:SetInspectGearScore()
+    if self.db.inspect_gs then
+        self:RegisterEvent("INSPECT_READY")
+        LibGearScore.RegisterCallback(self, "LibGearScore_Update")
+        p("살펴보기 기어스코어 표시")
+    else
+        self:RegisterEvent("INSPECT_READY")
+        if self.inspectGearScore then
+            self.inspectGearScore:Hide()
+        end
+        p("살펴보기 기어스코어 끄기")
+    end
+end
+
+function Upnemod:LibGearScore_Update(event, guid, gearScore)
+    if self.inspectingGUID and guid then
+        if gearScore then
+            self.inspectGearScore:SetTextColor((gearScore.Color or CreateColor(0.62, 0.62, 0.62)):GetRGB())
+            self.inspectGearScore:SetText((gearScore.GearScore or 0).."\n|cffffffff"..(gearScore.AvgItemLevel or 0).."|r")
+        end
+    end
+end
+
+function Upnemod:INSPECT_READY(event, ...)
+    if not self.inspectGearScore then
+        local text = InspectModelFrame:CreateFontString()
+        text:SetPoint("TOPRIGHT")
+        text:SetFontObject("GameFontNormalSmall")
+        text:SetJustifyH("RIGHT")
+        text:SetJustifyV("TOP")
+        text:SetTextColor(1, 1, 1)
+        self.inspectGearScore = text
+    end
+
+    local guid = ...
+    self.inspectingGUID = guid
+end
+
 function Upnemod:SetFixCombatText()
     if self.db.fixCombatText then
         C_Timer.NewTicker(5, function()
@@ -406,6 +476,14 @@ function Upnemod:BuildOptions()
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetTooltipIlvl() end,
             },
+            tooltip_gs = {
+                name = '툴팁에 기어스코어/평균템레벨 표시',
+                type = 'toggle',
+                order = 251,
+                width = "full",
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetTooltipGearScore() end,
+            },
             tooltip_auraId = {
                 name = '버프/디버프 툴팁에 주문ID 표시',
                 type = 'toggle',
@@ -433,6 +511,14 @@ function Upnemod:BuildOptions()
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetToTRaidIcon() end,
+            },
+            inspect_gs = {
+                name = '살펴보기 기어스코어 표시',
+                type = 'toggle',
+                order = 551,
+                width = "full",
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetInspectGearScore() end,
             },
             fixCombatText = {
                 name = '전투메시지 표시하기 고정',
