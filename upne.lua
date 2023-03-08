@@ -370,7 +370,7 @@ function Upnemod:SetInspectGearScore()
 end
 
 function Upnemod:LibGearScore_Update(event, guid, gearScore)
-    if self.inspectingGUID and guid then
+    if self.inspectingGUID and guid and self.inspectGearScore and InspectModelFrame then
         if gearScore then
             self.inspectGearScore:SetTextColor((gearScore.Color or CreateColor(0.62, 0.62, 0.62)):GetRGB())
             self.inspectGearScore:SetText((gearScore.GearScore or 0).."\n|cffffffff"..(gearScore.AvgItemLevel or 0).."|r")
@@ -379,7 +379,7 @@ function Upnemod:LibGearScore_Update(event, guid, gearScore)
 end
 
 function Upnemod:INSPECT_READY(event, ...)
-    if not self.inspectGearScore then
+    if not self.inspectGearScore and InspectModelFrame then
         local text = InspectModelFrame:CreateFontString()
         text:SetPoint("TOPRIGHT")
         text:SetFontObject("GameFontNormalSmall")
