@@ -1,6 +1,6 @@
 ## Interface: 30401
 ## Title: upne
-## Version: 1.4.1.1
+## Version: 1.5.0
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB

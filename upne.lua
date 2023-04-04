@@ -42,6 +42,9 @@ Upnemod.dbDefault = {
             callmeSound = 568197,
             tooltip_gs = true,
             inspect_gs = true,
+            vehicleUIScale = 1.0,
+            vehicleUISlim = false,
+            druidManaBar = false
         }
     }
 }
@@ -70,7 +73,9 @@ function Upnemod:OnInitialize()
     self:SetFixCombatText()
     self:SetCallme()
     self:SetInspectGearScore()
-
+    self:SetVehicleUISize()
+    self:SetVehicleUISlim()
+    self:SetDruidManaBar()
     -- Slash Commands
     SLASH_UPNE1 = "/ㅇㅇ"
     SLASH_UPNE2 = "/upne"
@@ -445,6 +450,41 @@ function Upnemod:OnChatMsg(event, msg, author)
     end
 end
 
+function Upnemod:SetVehicleUISize()
+    OverrideActionBar:SetScale(self.db.vehicleUIScale or 1.0)
+end
+
+function Upnemod:SetVehicleUISlim()
+    if self.db.vehicleUISlim then
+        OverrideActionBar.Divider1:Hide()
+        OverrideActionBar.Divider2:Hide()
+        OverrideActionBar.Divider3:Hide()
+        OverrideActionBarEndCapL:Hide()
+        OverrideActionBarEndCapR:Hide()
+        OverrideActionBarBorder:Hide()
+        OverrideActionBarBG:Hide()
+    else
+        OverrideActionBar.Divider1:Show()
+        OverrideActionBar.Divider2:Show()
+        OverrideActionBar.Divider3:Show()
+        OverrideActionBarEndCapL:Show()
+        OverrideActionBarEndCapR:Show()
+        OverrideActionBarBorder:Show()
+        OverrideActionBarBG:Show()
+    end
+end
+
+function Upnemod:SetDruidManaBar()
+    if self.db.druidManaBar then
+        PlayerFrameAlternateManaBar:ClearAllPoints()
+        PlayerFrameAlternateManaBar:SetPoint("TOPLEFT", PlayerFrameManaBar, "BOTTOMLEFT", 0, -2)
+        PlayerFrameAlternateManaBar:SetPoint("TOPRIGHT", PlayerFrameManaBar, "BOTTOMRIGHT", 0, -2)
+        ShowTextStatusBarText(PlayerFrameAlternateManaBar)
+        PlayerFrameAlternateManaBarText:SetScale(0.7)
+        PlayerFrameAlternateManaBarBorder:Hide()
+    end
+end
+
 function Upnemod:BuildOptions()
     self.optionsTable = {
         name = self.name,
@@ -548,7 +588,37 @@ function Upnemod:BuildOptions()
                 value = self.db.callmePlay,
                 order = 721,
                 func = function() PlaySoundFile(self.db.callmeSound) end
-            }
+            },
+            vehicleUIScale = {
+                name = '탈것 UI 크기 조정',
+                type = 'range',
+                order = 801,
+                width = "full",
+                min = 0.2,
+                max = 1.2,
+                step = 0.01,
+                isPercent = true,
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetVehicleUISize() end,
+            },
+            vehicleUISlim = {
+                name = '탈것 UI 간단하게 표시',
+                type = 'toggle',
+                order = 802,
+                width = "full",
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetVehicleUISlim() end,
+            },
+            druidManaBar = {
+                name = '드루이드 마나바 향상',
+                type = 'toggle',
+                descStyle = 'inline',
+                desc = '숫자 항상 표시, 폰트 크기 조정, 플레이어 프레임과 크기 맞춤, 테두리 제거. 되돌리려면 리로드가 필요합니다.',
+                order = 901,
+                width = "full",
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetDruidManaBar() end,
+            },
         }
     }
 end
