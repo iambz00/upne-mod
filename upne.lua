@@ -44,7 +44,9 @@ Upnemod.dbDefault = {
             inspect_gs = true,
             vehicleUIScale = 1.0,
             vehicleUISlim = false,
-            druidManaBar = false
+            druidManaBar = false,
+            fpsShow = false,
+            fpsOption = false,
         }
     }
 }
@@ -76,6 +78,7 @@ function Upnemod:OnInitialize()
     self:SetVehicleUISize()
     self:SetVehicleUISlim()
     self:SetDruidManaBar()
+    self:SetFramerate()
     -- Slash Commands
     SLASH_UPNE1 = "/ㅇㅇ"
     SLASH_UPNE2 = "/upne"
@@ -322,7 +325,7 @@ end
 ]]
 
 function Upnemod:TRADE_SHOW(...)
-    --TradeFrameRecipientNameText:SetTextColor(GetClassColor(select(2,UnitClass("npc"))))
+    TradeFrameRecipientNameText:SetTextColor(RAID_CLASS_COLORS[select(2,UnitClass("npc"))]:GetRGBA())
 end
 
 function Upnemod:SetToTRaidIcon()
@@ -485,6 +488,26 @@ function Upnemod:SetDruidManaBar()
     end
 end
 
+function Upnemod:SetFramerate()
+    if not self.db.fpsAnchorFrame then
+        local anchor
+        self.db.fpsAnchor, anchor, self.db.fpsAnchorFrameAnchor, self.db.fpsOffsetX, self.db.fpsOffsetY = FramerateLabel:GetPoint()
+        self.db.fpsAnchorFrame = anchor:GetName()
+    end
+    if self.db.fpsShow then
+        if not FramerateLabel:IsShown() then
+            ToggleFramerate()
+        end
+    end
+
+    if self.db.fpsOption then
+        FramerateLabel:ClearAllPoints()
+        FramerateText:ClearAllPoints()
+        FramerateLabel:SetPoint(self.db.fpsAnchor, self.db.fpsAnchorFrame, self.db.fpsAnchorFrameAnchor, self.db.fpsOffsetX, self.db.fpsOffsetY)
+        FramerateText:SetPoint("LEFT",FramerateLabel,"RIGHT")
+    end
+end
+
 function Upnemod:BuildOptions()
     self.optionsTable = {
         name = self.name,
@@ -616,8 +639,56 @@ function Upnemod:BuildOptions()
                 desc = '숫자 항상 표시, 폰트 크기 조정, 플레이어 프레임과 크기 맞춤, 테두리 제거. 되돌리려면 리로드가 필요합니다.',
                 order = 901,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
+                set = function(info, value) self.db[info[#info]] = value 
                         self:SetDruidManaBar() end,
+            },
+            fpsShow = {
+                name = 'fps 표시',
+                type = 'toggle',
+                order = 1001,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsOption = {
+                name = 'fps 표시기 조절',
+                type = "toggle",
+                order = 1002,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsAnchor = {
+                name = '기준점',
+                type = "input",
+                order = 1010,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsAnchorFrame = {
+                name = '기준프레임',
+                type = "input",
+                order = 1020,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsAnchorFrameAnchor = {
+                name = '기준프레임 기준점',
+                type = "input",
+                order = 1030,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsOffsetX = {
+                name = 'x이동',
+                type = "range",
+                softMin = -200,
+                softMax = 200,
+                bigStep = 10,
+                order = 1040,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
+            },
+            fpsOffsetY = {
+                name = 'y이동',
+                type = "range",
+                softMin = -200,
+                softMax = 200,
+                bigStep = 10,
+                order = 1050,
+                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
         }
     }
