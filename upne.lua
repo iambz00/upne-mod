@@ -3,27 +3,28 @@ Upnemod = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0")
 Upnemod.name = addonName
 Upnemod.version = GetAddOnMetadata(addonName, "Version")
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName, true)
 local LibGearScore = LibStub:GetLibrary("LibGearScore.1000", true)
 
-Upnemod.channelList = {
-    ["SAY"] = "SAY",	["S"] = "SAY",	["ㄴ"] = "SAY",	["일반"] = "SAY",
-    ["YELL"] = "YELL",	["Y"] = "YELL",	["ㅛ"] = "YELL",	["외침"] = "YELL",
-    ["PARTY"] = "PARTY",	["P"] = "PARTY",	["ㅔ"] = "PARTY",	["파티"] = "PARTY",
-    ["RAID"] = "RAID",	["R"] = "RAID",	["ㄱ"] = "RAID",	["공"] = "RAID",
-    ["INSTANCE"] = "INSTANCE",	["I"] = "INSTANCE",	["ㅑ"] = "INSTANCE",
-    ["RAID_WARNING"] = "RAID_WARNING",	["RW"] = "RAID_WARNING",	["경보"] = "RAID_WARNING",
-}
+local CHANNEL_LIST = { "SAY", "YELL", "PARTY", "RAID", "INSTANCE", "RAID_WARNING" }
+Upnemod.channelList = { }
+for _, channel in ipairs(CHANNEL_LIST) do
+    for keyword in L["CHANNELS_"..channel]:gmatch("([^,]+)") do
+        Upnemod.channelList[keyword] = channel
+    end
+end
 Upnemod.channelListOption = {
-    ["SAY"] = "일반",
-    ["YELL"] = "외침",
-    ["PARTY"] = "파티",
-    ["RAID"] = "공격대",
-    ["RAID_WARNING"] = "공격대경보",
+    SAY     = L["SAY"],
+    YELL    = L["YELL"],
+    PARTY   = L["PARTY"],
+    RAID    = L["RAID"],
+    INSTANCE = L["INSTANCE"],
+    RAID_WARNING = L["RAID_WARNING"]
 }
 
-BINDING_HEADER_UPNEMOD = "upnemod";
-BINDING_NAME_UPNEMOD_INSPECT_TARGET = "대상 살펴보기 ";
-BINDING_NAME_UPNEMOD_INSPECT_MOUSEOVER = "마우스오버 살펴보기";
+BINDING_HEADER_UPNEMOD = addonName;
+BINDING_NAME_UPNEMOD_INSPECT_TARGET = L["Inspect Target"]
+BINDING_NAME_UPNEMOD_INSPECT_MOUSEOVER = L["Inspect Mouseover"]
 
 local player = UnitName"player"
 
@@ -36,6 +37,7 @@ Upnemod.dbDefault = {
             tooltip_auraSrc = true,
             tooltip_auraId = true,
             trade_classColor = true,
+            deleteConfirm = true,
             tot_raidIcon = true,
             fixCombatText = true,
             callme = false,
@@ -52,7 +54,7 @@ Upnemod.dbDefault = {
 }
 
 local playerGUID
-local MSG_PREFIX = "|cff00ff00■ |cffffaa00upnemod|r "
+local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
 local p = function(str, ...) print(MSG_PREFIX..str, ...) end
 
 function Upnemod:OnInitialize()
@@ -71,6 +73,7 @@ function Upnemod:OnInitialize()
     self:SetTooltipIlvl()
     self:SetTooltipGearScore()
     self:SetTradeClassColor()
+    self:SetDeleteConfirm()
     self:SetToTRaidIcon()
     self:SetFixCombatText()
     self:SetCallme()
@@ -79,12 +82,14 @@ function Upnemod:OnInitialize()
     self:SetVehicleUISlim()
     self:SetDruidManaBar()
     self:SetFramerate()
+
     -- Slash Commands
-    SLASH_UPNE1 = "/ㅇㅇ"
-    SLASH_UPNE2 = "/upne"
+    SLASH_UPNE1 = "/upne"
+    SLASH_UPNE2 = L["SLASH_CMD_UPNE2"]
+    SLASH_UPNE3 = L["SLASH_CMD_UPNE3"]
     SlashCmdList["UPNE"] = function(msg)
         local cmd, val = msg:match("^(%S*)%s*(.*)")
-        if cmd == "차단" or cmd == "int" or cmd == "interrupt" then
+        if L["SLASH_OPT_INTERRUPT"][cmd] then
             channel = channelList[val:upper()]
             if channel then
                 self.db.announceInterrupt = true
@@ -98,12 +103,12 @@ function Upnemod:OnInitialize()
             InterfaceOptionsFrame_OpenToCategory(self.name)
         end
     end
-    SLASH_CALC1 = "/계산"
-    SLASH_CALC2 = "/calc"
+    SLASH_CALC1 = "/calc"
+    SLASH_CALC2 = L["SLASH_CMD_CALC2"]
     SlashCmdList["CALC"] = function(msg) Upnemod:Calc(msg) end
-    SLASH_CALCU1 = "/계산2"
-    SLASH_CALCU2 = "/calc2"
-    SlashCmdList["CALCU"] = function(msg) Upnemod:Calc(msg, true) end
+    SLASH_CALCS1 = "/calc2"
+    SLASH_CALCS2 = L["SLASH_CMD_CALC_SILENT2"]
+    SlashCmdList["CALCS"] = function(msg) Upnemod:Calc(msg, true) end
 end
 
 function Upnemod:Calc(msg, silent)
@@ -112,26 +117,28 @@ function Upnemod:Calc(msg, silent)
         local ok, result = pcall(func)
         if ok then
             if silent then
-                p("계산: "..msg.." = "..result)
+                p(L["Calculator"]..msg.." = "..result)
             else
-                SendChatMessage("계산: "..msg.." = "..result, "SAY")
+                SendChatMessage(L["Calculator"]..msg.." = "..result, "SAY")
             end
         else
-            p("계산 오류")
+            p(L["Calculation Error"])
         end
     else
-        p("계산 오류")
+        p(L["Calculation Error"])
     end
 end
 
 function Upnemod:SetAnnounceInterrupt()
+    local result = ""
     if self.db.announceInterrupt then
         Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        p("차단 알림 - " .. self.channelListOption[self.db.announceChannel])
+        result = L["Turn On" ]..L["Announce Interruption"].." : "..self.channelListOption[self.db.announceChannel]
     else
         Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        p("차단 알림 해제")
+        result = L["Turn Off"]..L["Announce Interruption"]
     end
+    return result
 end
 
 function Upnemod:SetTooltipHandler(tooltip, scriptName, func)
@@ -161,7 +168,8 @@ function Upnemod:SetTooltipIlvl()
             local itemID, _ = GetItemInfoInstant(itemLink)
 
             if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-                tooltip:AddDoubleLine("아이템 레벨   |cffffffff" .. itemLevel .. "|r", "(ID:  |cffffffff" .. itemID .. "|r)")
+                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", "(ID:  |cffffffff%d|r)",
+                    L["Item Level"], itemLevel, itemID))
             end
         end
     end
@@ -173,25 +181,27 @@ function Upnemod:SetTooltipIlvl()
             local itemID, _ = GetItemInfoInstant(itemLink)
 
             if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-                tooltip:AddLine("아이템 레벨 |cffffffff" .. itemLevel .. "|r")
-                tooltip:AddLine("아이템 ID |cffffffff" .. itemID .. "|r")
+                tooltip:AddLine(L["Item Level"].." |cffffffff" .. itemLevel .. "|r")
+                tooltip:AddLine("ID |cffffffff" .. itemID .. "|r")
             end
         end
     end
 
+    local result = ""
     if self.db.tooltip_ilvl then
         self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
         self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
         self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
         self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
-        p("툴팁에 아이템 레벨 표시")
+        result =  L["Turn On" ]..L["Show Item Lv/ID on Tooltip"]
     else
         self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
-        p("툴팁에 아이템 레벨 끄기")
+        result =  L["Turn Off"]..L["Show Item Lv/ID on Tooltip"]
     end
+    return result
 end
 
 function Upnemod:SetTooltipGearScore()
@@ -210,12 +220,14 @@ function Upnemod:SetTooltipGearScore()
             end
         end
     end
+
+    local result = ""
     if self.db.tooltip_gs then
         self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", GameTooltip_GearScore)
-        p("툴팁에 기어스코어 표시 - 살펴보기했던 대상만 적용")
+        result = L["Turn On" ]..L["Show GS/ILvl on Target Tooltip"]
     else
         self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", nil)
-        p("툴팁에 기어스코어 끄기")
+        result = L["Turn Off"]..L["Show GS/ILvl on Target Tooltip"]
     end
 end
 
@@ -270,6 +282,14 @@ function Upnemod:SetTradeClassColor()
     end
 end
 
+function Upnemod:SetDeleteConfirm()
+    if self.db.deleteConfirm then
+        self:RegisterEvent("DELETE_ITEM_CONFIRM")
+    else
+        self:UnregisterEvent("DELETE_ITEM_CONFIRM")
+    end
+end
+
 --[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
   COMBAT_LOG_EVENT_UNFILTERED
     timestamp, event, hideCaster, sourceGUID, sourceName,
@@ -285,7 +305,7 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
     local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
         spellId, spellName, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
     if combatEvent == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
-        if not destName then destName = "대상없음" end
+        if not destName then destName = L["No Target"] end
 
         -- Resolving RaidTarget
         -- COMBATLOG_OBJECT_RAIDTARGET_MASK = 0x000000FF in FrameXML/Constants.lua
@@ -306,12 +326,10 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
         -- RaidTarget end
 
         if (not IsInGroup()) then
-            p("차단 -> "..raidTarget..destName.."의 "..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName) .."")
+            p(L["Interrupt"].." - "..raidTarget..destName..L["'s "]..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName) .."")
         else
-            SendChatMessage("차단 -> "..raidTarget..destName.."의 "..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName), self.db.announceChannel)
+            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName..L["'s "]..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName), self.db.announceChannel)
         end
---	elseif combatEvent == "SPELL_AURA_APPLIED" and UnitIsPlayer(sourceGUID) and destGUID == UnitGUID("player") then
---		print(" * 오라 받음 [" .. sourceName .. "] 의 [" .. spellName .. "]")
     end
 end
 
@@ -326,6 +344,13 @@ end
 
 function Upnemod:TRADE_SHOW(...)
     TradeFrameRecipientNameText:SetTextColor(RAID_CLASS_COLORS[select(2,UnitClass("npc"))]:GetRGBA())
+end
+
+function Upnemod:DELETE_ITEM_CONFIRM(...)
+    -- DELETE_CONFIRM_STRING is Empty.. why?
+    DELETE_CONFIRM_STRING = DELETE_CONFIRM_STRING or DELETE_GOOD_ITEM:match("\"([^\"]+)\"")
+    StaticPopup1EditBox:SetText(DELETE_CONFIRM_STRING)
+    --StaticPopup1Button1:Enable()
 end
 
 function Upnemod:SetToTRaidIcon()
@@ -364,16 +389,17 @@ function upne_TargetofTarget_Update(self, elapsed)
 end
 
 function Upnemod:SetInspectGearScore()
+    local result = ""
     if self.db.inspect_gs then
         self:RegisterEvent("INSPECT_READY")
         LibGearScore.RegisterCallback(self, "LibGearScore_Update")
-        p("살펴보기 기어스코어 표시")
+        result =  L["Turn On" ]..L["Show GearScore on Inspection"]
     else
         self:RegisterEvent("INSPECT_READY")
         if self.inspectGearScore then
             self.inspectGearScore:Hide()
         end
-        p("살펴보기 기어스코어 끄기")
+        result =  L["Turn Off"]..L["Show GearScore on Inspection"]
     end
 end
 
@@ -406,13 +432,14 @@ function Upnemod:SetFixCombatText()
         C_Timer.NewTicker(5, function()
             if GetCVar("enableFloatingCombatText") ~= "1" then
                 SetCVar("enableFloatingCombatText", 1)
-                p("전투메시지 표시가 꺼져 있어서 켰습니다. 리로드 또는 재접속해야 적용됩니다.")
+                p(L["Turn On" ]..L["Combat Message Enabled"])
             end
         end, 4)
     end
 end
 
 function Upnemod:SetCallme()
+    local result = ""
     if self.db.callme then
         self:RegisterEvent("CHAT_MSG_CHANNEL"              , "OnChatMsg")
         self:RegisterEvent("CHAT_MSG_GUILD"                , "OnChatMsg")
@@ -427,7 +454,7 @@ function Upnemod:SetCallme()
         self:RegisterEvent("CHAT_MSG_SAY"                  , "OnChatMsg")
         self:RegisterEvent("CHAT_MSG_WHISPER"              , "OnChatMsg")
         self:RegisterEvent("CHAT_MSG_YELL"                 , "OnChatMsg")
-        p("콜미 설정")
+        result = L["Turn On" ]..L["Alarm when Someone calls My Name"]
     else
         self:UnregisterEvent("CHAT_MSG_CHANNEL"             )
         self:UnregisterEvent("CHAT_MSG_GUILD"               )
@@ -442,7 +469,7 @@ function Upnemod:SetCallme()
         self:UnregisterEvent("CHAT_MSG_SAY"                 )
         self:UnregisterEvent("CHAT_MSG_WHISPER"             )
         self:UnregisterEvent("CHAT_MSG_YELL"                )
-        p("콜미 해제")
+        result = L["Turn Off"]..L["Alarm when Someone calls My Name"]
     end
 end
 
@@ -509,112 +536,132 @@ function Upnemod:SetFramerate()
 end
 
 function Upnemod:BuildOptions()
+    local anchorPoints = {
+        TOPLEFT     = L["TOPLEFT"]    ,
+        TOP         = L["TOP"]        ,
+        TOPRIGHT    = L["TOPRIGHT"]   ,
+        LEFT        = L["LEFT"]       ,
+        CENTER      = L["CENTER"]     ,
+        RIGHT       = L["RIGHT"]      ,
+        BOTTOMLEFT  = L["BOTTOMLEFT"] ,
+        BOTTOM      = L["BOTTOM"]     ,
+        BOTTOMRIGHT = L["BOTTOMRIGHT"],
+    }
+    
     self.optionsTable = {
         name = self.name,
         handler = self,
-        type = 'group',
+        type = "group",
         get = function(info) return self.db[info[#info]] end,
         set = function(info, value) self.db[info[#info]] = value end,
         args = {
             announceInterrupt = {
-                name = '차단알림 사용',
-                type = 'toggle',
+                name = L["Announce Interruption"],
+                type = "toggle",
                 order = 101,
                 set = function(info, value) self.db[info[#info]] = value
-                        self:SetAnnounceInterrupt()	end,
+                        p(self:SetAnnounceInterrupt()) end,
             },
             announceChannel = {
-                name = '차단알림 채널',
-                type = 'select',
+                name = L["Announce Interruption: Channel"],
+                type = "select",
                 values = self.channelListOption,
                 order = 102,
                 set = function(info, value) self.db[info[#info]] = value
-                        self:SetAnnounceInterrupt() end,
+                        p(self:SetAnnounceInterrupt()) end,
             },
             tooltip_ilvl = {
-                name = '툴팁에 아이템 레벨/ID 표시',
-                type = 'toggle',
+                name = L["Show Item Lv/ID on Tooltip"],
+                type = "toggle",
                 order = 201,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
-                        self:SetTooltipIlvl() end,
+                        p(self:SetTooltipIlvl()) end,
             },
             tooltip_gs = {
-                name = '툴팁에 기어스코어/평균템레벨 표시',
-                type = 'toggle',
+                name = L["Show GS/ILvl on Target Tooltip"],
+                type = "toggle",
                 order = 251,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
-                        self:SetTooltipGearScore() end,
+                        p(self:SetTooltipGearScore()) end,
             },
             tooltip_auraId = {
-                name = '버프/디버프 툴팁에 주문ID 표시',
-                type = 'toggle',
+                name = L["Show [Spell ID] on Aura Tooltip"],
+                type = "toggle",
                 order = 301,
                 width = "full",
             },
             tooltip_auraSrc = {
-                name = '버프/디버프 툴팁에 시전자 표시',
-                type = 'toggle',
+                name = L["Show [Caster Name] on Aura Tooltip"],
+                type = "toggle",
                 order = 302,
                 width = "full",
             },
             trade_classColor = {
-                name = '거래창에서 상대방 직업색상 보이기',
-                type = 'toggle',
+                name = L["Show Target Class Color on Trade Window"],
+                type = "toggle",
                 order = 401,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetTradeClassColor() end,
             },
+            deleteConfirm = {
+                name = L["Automatically Input DELETE CONFIRM String"],
+                type = "toggle",
+                order = 411,
+                width = "full",
+                set = function(info, value) self.db[info[#info]] = value
+                        self:SetDeleteConfirm() end,
+            },
             tot_raidIcon = {
-                name = '대상의 대상/주시대상의 대상 공격대 아이콘 표시',
-                type = 'toggle',
+                name = L["Show Raid Icon on ToT/ToF"],
+                type = "toggle",
                 order = 501,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetToTRaidIcon() end,
             },
             inspect_gs = {
-                name = '살펴보기 기어스코어 표시',
-                type = 'toggle',
+                name = L["Show GearScore on Inspection"],
+                type = "toggle",
                 order = 551,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetInspectGearScore() end,
             },
             fixCombatText = {
-                name = '전투메시지 표시하기 고정',
-                type = 'toggle',
+                name = L["Fix Combat Message ON"],
+                type = "toggle",
                 order = 601,
-                width = 'full',
-                desc = '간혹 전투메시지 표시가 꺼져 있는 현상을 방지',
+                width = "full",
+                desc = L["Description_FixCombatMessage"],
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetFixCombatText() end,
             },
             callme = {
-                name = '내 이름 불렸을 때 알람(콜미)',
-                type = 'toggle',
+                name = L["Alarm when Someone calls My Name"],
+                type = "toggle",
                 order = 701,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetCallme() end,
             },
             callmeSound = {
-                name = '콜미 소리',
-                type = 'input',
+                name = L["Alarm Sound"],
+                type = "input",
                 order = 711,
             },
             callmePlay = {
-                name = '듣기',
-                type = 'execute',
+                name = L["Play"],
+                type = "execute",
                 value = self.db.callmePlay,
                 order = 721,
                 func = function() PlaySoundFile(self.db.callmeSound) end
             },
             vehicleUIScale = {
-                name = '탈것 UI 크기 조정',
-                type = 'range',
+                name = L["Zoom Vehicle UI Size"],
+                type = "range",
                 order = 801,
                 width = "full",
                 min = 0.2,
@@ -625,63 +672,59 @@ function Upnemod:BuildOptions()
                         self:SetVehicleUISize() end,
             },
             vehicleUISlim = {
-                name = '탈것 UI 간단하게 표시',
-                type = 'toggle',
+                name = L["Hide Vehicle UI Background"],
+                type = "toggle",
                 order = 802,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value
                         self:SetVehicleUISlim() end,
             },
             druidManaBar = {
-                name = '드루이드 마나바 향상',
-                type = 'toggle',
-                descStyle = 'inline',
-                desc = '숫자 항상 표시, 폰트 크기 조정, 플레이어 프레임과 크기 맞춤, 테두리 제거. 되돌리려면 리로드가 필요합니다.',
+                name = L["Enhance Druid ManaBar"],
+                type = "toggle",
+                descStyle = "inline",
+                desc = L["Description_DruidManaBar"],
                 order = 901,
                 width = "full",
                 set = function(info, value) self.db[info[#info]] = value 
                         self:SetDruidManaBar() end,
             },
             fpsShow = {
-                name = 'fps 표시',
-                type = 'toggle',
+                name = L["FPS: Show FPS"],
+                type = "toggle",
                 order = 1001,
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsOption = {
-                name = 'fps 표시기 조절',
+                name = L["FPS: Move Frame"],
                 type = "toggle",
                 order = 1002,
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsAnchor = {
-                name = '기준점',
+                name = L["FPS: Anchor Point"],
                 type = "select",
                 style = "dropdown",
-                values = {  TOPLEFT="TOPLEFT", TOP="TOP", TOPRIGHT="TOPRIGHT", 
-                            LEFT="LEFT", CENTER="CENTER", RIGHT="RIGHT", 
-                            BOTTOMLEFT="BOTTOMLEFT", BOTTOM="BOTTOM", BOTTOMRIGHT="BOTTOMRIGHT", },
+                values = anchorPoints,
                 order = 1010,
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsAnchorFrame = {
-                name = '기준프레임',
+                name = L["FPS: Anchor Frame"],
                 type = "input",
                 order = 1020,
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsAnchorFrameAnchor = {
-                name = '기준프레임 기준점',
+                name = L["FPS: Anchor Frame's Anchor Point"],
                 type = "select",
                 style = "dropdown",
-                values = {  TOPLEFT="TOPLEFT", TOP="TOP", TOPRIGHT="TOPRIGHT", 
-                            LEFT="LEFT", CENTER="CENTER", RIGHT="RIGHT", 
-                            BOTTOMLEFT="BOTTOMLEFT", BOTTOM="BOTTOM", BOTTOMRIGHT="BOTTOMRIGHT", },
+                values = anchorPoints,
                 order = 1030,
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsOffsetX = {
-                name = 'x이동',
+                name = L["X Offset"],
                 type = "range",
                 softMin = -200,
                 softMax = 200,
@@ -690,7 +733,7 @@ function Upnemod:BuildOptions()
                 set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
             fpsOffsetY = {
-                name = 'y이동',
+                name = L["Y Offset"],
                 type = "range",
                 softMin = -200,
                 softMax = 200,
