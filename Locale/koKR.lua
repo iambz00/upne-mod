@@ -38,6 +38,7 @@ L["Turn Off"] = "(|cff999999끄기|r) "
 
 L["Announce Interruption"] = "차단 알림"
 L["Announce Interruption: Channel"] = "차단 알림 채널"
+L["Interrupt"] = "차단"
 L["No Target"] = "대상 없음"
 L["'s "] = "의 "
 L["Item Level"] = "아이템 레벨"
