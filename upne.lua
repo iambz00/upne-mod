@@ -162,20 +162,19 @@ end
 
 function Upnemod:SetTooltipIlvl()
     local function GameTooltip_Ilvl(tooltip, ...)
-        local itemLink = tooltip:GetItem()
+        local _, itemLink = tooltip:GetItem()
         if itemLink then
             local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
             local itemID, _ = GetItemInfoInstant(itemLink)
 
             if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", "(ID:  |cffffffff%d|r)",
-                    L["Item Level"], itemLevel, itemID))
+                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", L["Item Level"], itemLevel), "(ID:  |cffffffff"..itemID.."|r)")
             end
         end
     end
 
     local function GameTooltip_Ilvl_Narrow(tooltip, ...)
-        local itemLink = tooltip:GetItem()
+        local _, itemLink = tooltip:GetItem()
         if itemLink then
             local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
             local itemID, _ = GetItemInfoInstant(itemLink)
@@ -193,13 +192,13 @@ function Upnemod:SetTooltipIlvl()
         self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
         self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
         self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
-        result =  L["Turn On" ]..L["Show Item Lv/ID on Tooltip"]
+        result =  L["Turn On" ]..L["Show [Item Lv/ID] on Tooltip"]
     else
         self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
         self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
-        result =  L["Turn Off"]..L["Show Item Lv/ID on Tooltip"]
+        result =  L["Turn Off"]..L["Show [Item Lv/ID] on Tooltip"]
     end
     return result
 end
@@ -432,7 +431,7 @@ function Upnemod:SetFixCombatText()
         C_Timer.NewTicker(5, function()
             if GetCVar("enableFloatingCombatText") ~= "1" then
                 SetCVar("enableFloatingCombatText", 1)
-                p(L["Turn On" ]..L["Combat Message Enabled"])
+                p(L["Combat Message Enabled"])
             end
         end, 4)
     end
@@ -571,7 +570,7 @@ function Upnemod:BuildOptions()
                         p(self:SetAnnounceInterrupt()) end,
             },
             tooltip_ilvl = {
-                name = L["Show Item Lv/ID on Tooltip"],
+                name = L["Show [Item Lv/ID] on Tooltip"],
                 type = "toggle",
                 order = 201,
                 width = "full",
