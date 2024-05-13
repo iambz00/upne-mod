@@ -31,55 +31,142 @@ local player = UnitName"player"
 Upnemod.dbDefault = {
     realm = {
         [player] = {
-            announceInterrupt = true,
-            announceChannel = "SAY",
-            tooltip_auraSrc = true,
-            tooltip_auraId = true,
-            trade_classColor = true,
-            deleteConfirm = true,
-            tot_raidIcon = true,
-            fixCombatText = true,
-            callme = false,
-            callmeSound = 568197,
-            tooltip_gs = true,
-            inspect_gs = true,
-            vehicleUIScale = 1.0,
-            vehicleUISlim = false,
-            druidManaBar = false,
-            fpsShow = false,
-            fpsOption = false,
+            ANNOUNCE_INTERRUPT  = true,
+            ANNOUNCE_CHANNEL    = "SAY",
+            TOOLTIP_AURA_SRC    = true,
+            TOOLTIP_AURA_ID     = true,
+            TRADE_CLASS_COLOR   = true,
+            DELETE_CONFIRM      = true,
+            RAIDICON_TOT        = true,
+            FIX_COMBATTEXT      = true,
+            CALLME_ON           = false,
+            CALLME_SOUND        = 568197,
+            TOOLTIP_UNIT_GS     = true,
+            INSPECT_GS          = true,
+            VEHICLEUI_SCALE     = 0.6,
+            VEHICLEUI_HIDEBG    = true,
+            DRUID_MANABAR       = false,
+            FPS_SHOW            = false,
+            FPS_OPTION          = false,
         }
     }
 }
 
 local playerGUID
 local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
-local p = function(str, ...) print(MSG_PREFIX..str, ...) end
+local p = function(str, ...) print(MSG_PREFIX.."|cffdddddd"..tostring(str).."|r", ...) end
+
+Upnemod.Set = { }
+local n = {
+    announceInterrupt   = "ANNOUNCE_INTERRUPT",
+    announceChannel     = "ANNOUNCE_CHANNEL",
+    tooltip_auraSrc     = "TOOLTIP_AURA_SRC",
+    tooltip_auraId      = "TOOLTIP_AURA_ID",
+    trade_classColor    = "TRADE_CLASS_COLOR",
+    deleteConfirm       = "DELETE_CONFIRM",
+    tot_raidIcon        = "RAIDICON_TOT",
+    fixCombatText       = "FIX_COMBATTEXT",
+    callme              = "CALLME_ON",
+    callmeSound         = "CALLME_SOUND",
+    tooltip_gs          = "TOOLTIP_UNIT_GS",
+    inspect_gs          = "INSPECT_GS",
+    vehicleUIScale      = "VEHICLEUI_SCALE",
+    vehicleUISlim       = "VEHICLEUI_HIDEBG",
+    druidManaBar        = "DRUID_MANABAR",
+    fpsShow             = "FPS_SHOW",
+    fpsOption           = "FPS_OPTION",
+    fpsAnchor           = "FPS_Anchor",
+    fpsAnchorFrame      = "FPS_AnchorFrame",
+    fpsAnchorFrameAnchor = "FPS_AnchorFrameAnchor",
+    fpsOffsetX          = "FPS_OffsetX",
+    fpsOffsetY          = "FPS_OffsetY",
+    tooltip_ilvl        = false,
+}
+
+local function upne_Tooltiphandler_GearScore(tooltip, ...)
+    local _, unitID = tooltip:GetUnit()
+    if unitID then
+        local guid, gearScore = LibGearScore:GetScore(unitID)
+        if gearScore then
+            local gs = gearScore.GearScore or 0
+            if tonumber(gs) > 0 then
+                gs = gearScore.Color and gearScore.Color:WrapTextInColorCode(gs) or gs
+                local ilvl = gearScore.AvgItemLevel or 0
+                --tooltip:AddDoubleLine(gs, ilvl)
+                tooltip:AddLine(gs .."|cff9d9d9d/|r|cffffffff".. ilvl.."|r")
+            end
+        end
+    end
+end
+
+local function upne_AuraHandler(auraFunc, gt, ...)
+    local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
+    local db = Upnemod.db
+    if auraId then
+        local left = db.TOOLTIP_AURA_ID and ("ID: |cffffffff"..auraId.."|r") or " "
+        local right = ""
+        if db.TOOLTIP_AURA_SRC and src then
+            right, _ = UnitName(src)
+            local _, class, _ = UnitClass(src)
+            local classColor = RAID_CLASS_COLORS[class]
+            if classColor then
+                right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+            end
+            right = "by "..right
+        end
+        if db.TOOLTIP_AURA_ID or db.TOOLTIP_AURA_SRC then
+            gt:AddDoubleLine(left, right)
+            gt:Show()
+        end
+    end
+end
 
 function Upnemod:OnInitialize()
     self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
     self.db = self.wholeDb.realm[player]
+
+    -- Convert DB
+    local is_old_options = false
+    for ch, db in pairs(self.wholeDb.realm) do
+        for k, _ in pairs(n) do
+            if db[k] then
+                is_old_options = true
+            end
+        end
+    end
+    if is_old_options then
+        for ch, db in pairs(self.wholeDb.realm) do
+            for k, v in pairs(n) do
+                if v then
+                    db[v] = db[k]
+                end
+                db[k] = nil
+            end
+        end
+    end
+
+    self.wholeDb.global.version = self.version
+
     self:BuildOptions()
 
-    playerGUID = UnitGUID"player"
-    self.tooltipHandler = {}
+    playerGUID = UnitGUID("player")
 
     LibStub("AceConfig-3.0"):RegisterOptionsTable(self.name, self.optionsTable)
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
-    self:SetTooltipAura()
-    self:SetAnnounceInterrupt()
-    self:SetTooltipGearScore()
-    self:SetTradeClassColor()
-    self:SetDeleteConfirm()
-    self:SetToTRaidIcon()
-    self:SetFixCombatText()
-    self:SetCallme()
-    self:SetInspectGearScore()
-    self:SetVehicleUISize()
-    self:SetVehicleUISlim()
-    self:SetDruidManaBar()
-    self:SetFramerate()
+    -- Hooks and Setups
+    ---- GearScore on Tooltip
+    GameTooltip:HookScript("OnTooltipSetUnit", upne_Tooltiphandler_GearScore)
+    ---- Spell Caster/ID on Aura/Buff/Debuff Tooltip
+    hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
+    hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
+    hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
+    ---- Raid Target Icon on TargetOfTarget/TargetOfFocus
+    self:SetupToTRaidIcon()
+    self:TurnOnCombatText()
+
+    -- Apply options
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_GS", "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION"}) do self.Set[v](_, self.db[v]) end
 
     -- Slash Commands
     SLASH_UPNE1 = "/upne"
@@ -90,12 +177,12 @@ function Upnemod:OnInitialize()
         if L["SLASH_OPT_INTERRUPT"][cmd] then
             channel = channelList[val:upper()]
             if channel then
-                self.db.announceInterrupt = true
-                self.db.announceChannel = channel
+                self.db.ANNOUNCE_INTERRUPT = true
+                self.db.ANNOUNCE_CHANNEL = channel
             else
-                self.db.announceInterrupt = false
+                self.db.ANNOUNCE_INTERRUPT = false
             end
-            self:SetAnnounceInterrupt()
+            self.Set:ANNOUNCE_INTERRUPT()
         else
             InterfaceOptionsFrame_OpenToCategory(self.name)
             InterfaceOptionsFrame_OpenToCategory(self.name)
@@ -115,9 +202,9 @@ function Upnemod:Calc(msg, silent)
         local ok, result = pcall(func)
         if ok then
             if silent then
-                p(L["Calculator"]..msg.." = "..result)
+                p(L["Calculator"].." : "..msg.." = "..result)
             else
-                SendChatMessage(L["Calculator"]..msg.." = "..result, "SAY")
+                SendChatMessage(L["Calculator"].." : |cffffffff"..msg.." = "..result.."|r", "SAY")
             end
         else
             p(L["Calculation Error"])
@@ -127,118 +214,16 @@ function Upnemod:Calc(msg, silent)
     end
 end
 
-function Upnemod:SetAnnounceInterrupt()
-    local result = ""
-    if self.db.announceInterrupt then
+function Upnemod.Set:ANNOUNCE_INTERRUPT(on)
+    if on then
         Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        result = L["Turn On" ]..L["Announce Interruption"].." : "..self.channelListOption[self.db.announceChannel]
+        return Upnemod.channelListOption[Upnemod.db.ANNOUNCE_CHANNEL]
     else
         Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        result = L["Turn Off"]..L["Announce Interruption"]
-    end
-    return result
-end
-
-function Upnemod:SetTooltipHandler(tooltip, scriptName, func)
-    if func then
-        local orgHandler = tooltip:GetScript(scriptName)
-        if orgHandler then
-            self.tooltipHandler[tooltip:GetName()] = orgHandler
-            tooltip:HookScript(scriptName, func)
-        else
-            tooltip:SetScript(scriptName, func)
-        end
-    else
-        local orgHandler = self.tooltipHandler[tooltip:GetName()]
-        if orgHandler then
-            tooltip:SetScript(scriptName, orgHandler)
-        else
-            tooltip:SetScript(scriptName, nil)
-        end
+        return ""
     end
 end
-
-function Upnemod:SetTooltipGearScore()
-    local function GameTooltip_GearScore(tooltip, ...)
-        local _, unitID = tooltip:GetUnit()
-        if unitID then
-            local guid, gearScore = LibGearScore:GetScore(unitID)
-            if gearScore then
-                local gs = gearScore.GearScore or 0
-                if tonumber(gs) > 0 then
-                    gs = gearScore.Color and gearScore.Color:WrapTextInColorCode(gs) or gs
-                    local ilvl = gearScore.AvgItemLevel or 0
-                    --tooltip:AddDoubleLine(gs, ilvl)
-                    tooltip:AddLine(gs .."|cff9d9d9d/|r|cffffffff".. ilvl.."|r")
-                end
-            end
-        end
-    end
-
-    local result = ""
-    if self.db.tooltip_gs then
-        self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", GameTooltip_GearScore)
-        result = L["Turn On" ]..L["Show GS/ILvl on Target Tooltip"]
-    else
-        self:SetTooltipHandler(GameTooltip, "OnTooltipSetUnit", nil)
-        result = L["Turn Off"]..L["Show GS/ILvl on Target Tooltip"]
-    end
-end
-
-local function upne_AuraHandler(auraFunc, gt, ...)
-    local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
-    local db = Upnemod.db
-    if auraId then
-        local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
-        local right = ""
-        if db.tooltip_auraSrc and src then
-            right, _ = UnitName(src)
-            local _, class, _ = UnitClass(src)
-            local classColor = RAID_CLASS_COLORS[class]
-            if classColor then
-                right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
-            end
-            right = "by "..right
-        end
-        if db.tooltip_auraId or db.tooltip_auraSrc then
-            gt:AddDoubleLine(left, right)
-            gt:Show()
-        end
-    end
-end
-
-function Upnemod:SetTooltipAura()
-    hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
-    hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
-    hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
-end
-
-function Upnemod:SetTradeClassColor()
-    if self.db.trade_classColor then
-        self:RegisterEvent("TRADE_SHOW")
-    else
-        self:UnregisterEvent("TRADE_SHOW")
-    end
-end
-
-function Upnemod:SetDeleteConfirm()
-    if self.db.deleteConfirm then
-        self:RegisterEvent("DELETE_ITEM_CONFIRM")
-    else
-        self:UnregisterEvent("DELETE_ITEM_CONFIRM")
-    end
-end
-
---[[ http://wow.gamepedia.com/COMBAT_LOG_EVENT
-  COMBAT_LOG_EVENT_UNFILTERED
-    timestamp, event, hideCaster, sourceGUID, sourceName,
-    sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags 
-  SPELL
-    spellId, spellName, spellSchool 
-  _INTERRUPT
-    extraSpellId, extraSpellName, extraSchool 
-
-]]
+function Upnemod.Set:ANNOUNCE_CHANNEL() end
 
 function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
     local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
@@ -268,13 +253,35 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
         if (not IsInGroup()) then
             p(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink)
         else
-            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink, self.db.announceChannel)
+            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
         end
     end
 end
 
+function Upnemod.Set:TOOLTIP_UNIT_GS(on) return "" end
+function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
+function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
+
+function Upnemod.Set:TRADE_CLASS_COLOR(on)
+    if on then
+        Upnemod:RegisterEvent("TRADE_SHOW")
+    else
+        Upnemod:UnregisterEvent("TRADE_SHOW")
+    end
+    return ""
+end
+
 function Upnemod:TRADE_SHOW(...)
     TradeFrameRecipientNameText:SetTextColor(RAID_CLASS_COLORS[select(2,UnitClass("npc"))]:GetRGBA())
+end
+
+function Upnemod.Set:DELETE_CONFIRM(on)
+    if on then
+        Upnemod:RegisterEvent("DELETE_ITEM_CONFIRM")
+    else
+        Upnemod:UnregisterEvent("DELETE_ITEM_CONFIRM")
+    end
+    return ""
 end
 
 function Upnemod:DELETE_ITEM_CONFIRM(...)
@@ -284,8 +291,8 @@ function Upnemod:DELETE_ITEM_CONFIRM(...)
     --StaticPopup1Button1:Enable()
 end
 
-function Upnemod:SetToTRaidIcon()
-    if self.db.tot_raidIcon then
+function Upnemod:SetupToTRaidIcon()
+    if self.db.RAIDICON_TOT then
         local t = TargetFrameToT
         if not t.raidTargetIcon then
             t.raidTargetIcon = t:CreateTexture()
@@ -309,7 +316,6 @@ function Upnemod:SetToTRaidIcon()
             tx:SetDrawLayer("Artwork",0)
             tx:Show()
         end
-        --hooksecurefunc("TargetofTarget_Update",upne_TargetofTarget_Update)
         hooksecurefunc("UnitFrame_OnEvent",upne_TargetofTarget_Update)
     end
 end
@@ -319,19 +325,17 @@ function upne_TargetofTarget_Update(self, elapsed)
     SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
 end
 
-function Upnemod:SetInspectGearScore()
-    local result = ""
-    if self.db.inspect_gs then
-        self:RegisterEvent("INSPECT_READY")
-        LibGearScore.RegisterCallback(self, "LibGearScore_Update")
-        result =  L["Turn On" ]..L["Show GearScore on Inspection"]
+function Upnemod.Set:INSPECT_GS(on)
+    if on then
+        Upnemod:RegisterEvent("INSPECT_READY")
+        LibGearScore.RegisterCallback(Upnemod, "LibGearScore_Update")
     else
-        self:RegisterEvent("INSPECT_READY")
-        if self.inspectGearScore then
-            self.inspectGearScore:Hide()
+        Upnemod:UnregisterEvent("INSPECT_READY")
+        if Upnemod.inspectGearScore then
+            Upnemod.inspectGearScore:Hide()
         end
-        result =  L["Turn Off"]..L["Show GearScore on Inspection"]
     end
+    return ""
 end
 
 function Upnemod:LibGearScore_Update(event, guid, gearScore)
@@ -339,6 +343,7 @@ function Upnemod:LibGearScore_Update(event, guid, gearScore)
         if gearScore then
             self.inspectGearScore:SetTextColor((gearScore.Color or CreateColor(0.62, 0.62, 0.62)):GetRGB())
             self.inspectGearScore:SetText((gearScore.GearScore or 0).."\n|cffffffff"..(gearScore.AvgItemLevel or 0).."|r")
+            self.inspectGearScore:Show()
         end
     end
 end
@@ -358,8 +363,10 @@ function Upnemod:INSPECT_READY(event, ...)
     self.inspectingGUID = guid
 end
 
-function Upnemod:SetFixCombatText()
-    if self.db.fixCombatText then
+function Upnemod.Set:FIX_COMBATTEXT() return "" end
+
+function Upnemod:TurnOnCombatText()
+    if self.db.FIX_COMBATTEXT then
         C_Timer.NewTicker(5, function()
             if GetCVar("enableFloatingCombatText") ~= "1" then
                 SetCVar("enableFloatingCombatText", 1)
@@ -369,54 +376,52 @@ function Upnemod:SetFixCombatText()
     end
 end
 
-function Upnemod:SetCallme()
-    local result = ""
-    if self.db.callme then
-        self:RegisterEvent("CHAT_MSG_CHANNEL"              , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_GUILD"                , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT"        , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER" , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_OFFICER"              , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_PARTY"                , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_PARTY_LEADER"         , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_RAID"                 , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_RAID_LEADER"          , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_RAID_WARNING"         , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_SAY"                  , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_WHISPER"              , "OnChatMsg")
-        self:RegisterEvent("CHAT_MSG_YELL"                 , "OnChatMsg")
-        result = L["Turn On" ]..L["Alarm when Someone calls My Name"]
+function Upnemod.Set:CALLME_ON(on)
+    if on then
+        Upnemod:RegisterEvent("CHAT_MSG_CHANNEL"              , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_GUILD"                , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_INSTANCE_CHAT"        , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER" , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_OFFICER"              , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_PARTY"                , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_PARTY_LEADER"         , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_RAID"                 , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_RAID_LEADER"          , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_RAID_WARNING"         , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_SAY"                  , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_WHISPER"              , "OnCallMe")
+        Upnemod:RegisterEvent("CHAT_MSG_YELL"                 , "OnCallMe")
     else
-        self:UnregisterEvent("CHAT_MSG_CHANNEL"             )
-        self:UnregisterEvent("CHAT_MSG_GUILD"               )
-        self:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT"       )
-        self:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
-        self:UnregisterEvent("CHAT_MSG_OFFICER"             )
-        self:UnregisterEvent("CHAT_MSG_PARTY"               )
-        self:UnregisterEvent("CHAT_MSG_PARTY_LEADER"        )
-        self:UnregisterEvent("CHAT_MSG_RAID"                )
-        self:UnregisterEvent("CHAT_MSG_RAID_LEADER"         )
-        self:UnregisterEvent("CHAT_MSG_RAID_WARNING"        )
-        self:UnregisterEvent("CHAT_MSG_SAY"                 )
-        self:UnregisterEvent("CHAT_MSG_WHISPER"             )
-        self:UnregisterEvent("CHAT_MSG_YELL"                )
-        result = L["Turn Off"]..L["Alarm when Someone calls My Name"]
+        Upnemod:UnregisterEvent("CHAT_MSG_CHANNEL"             )
+        Upnemod:UnregisterEvent("CHAT_MSG_GUILD"               )
+        Upnemod:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT"       )
+        Upnemod:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
+        Upnemod:UnregisterEvent("CHAT_MSG_OFFICER"             )
+        Upnemod:UnregisterEvent("CHAT_MSG_PARTY"               )
+        Upnemod:UnregisterEvent("CHAT_MSG_PARTY_LEADER"        )
+        Upnemod:UnregisterEvent("CHAT_MSG_RAID"                )
+        Upnemod:UnregisterEvent("CHAT_MSG_RAID_LEADER"         )
+        Upnemod:UnregisterEvent("CHAT_MSG_RAID_WARNING"        )
+        Upnemod:UnregisterEvent("CHAT_MSG_SAY"                 )
+        Upnemod:UnregisterEvent("CHAT_MSG_WHISPER"             )
+        Upnemod:UnregisterEvent("CHAT_MSG_YELL"                )
     end
+    return ""
 end
 
-function Upnemod:OnChatMsg(event, msg, author)
+function Upnemod:OnCallMe(event, msg, author)
     local name = author and author:match("^([^-]*)-") or ""
     if msg:match(player) and (name ~= player) then
-        PlaySoundFile(self.db.callmeSound)
+        PlaySoundFile(self.db.CALLME_SOUND)
     end
 end
 
-function Upnemod:SetVehicleUISize()
-    OverrideActionBar:SetScale(self.db.vehicleUIScale or 1.0)
+function Upnemod.Set:VEHICLEUI_SCALE(on)
+    OverrideActionBar:SetScale(Upnemod.db.VEHICLEUI_SCALE or 1.0)
 end
 
-function Upnemod:SetVehicleUISlim()
-    if self.db.vehicleUISlim then
+function Upnemod.Set:VEHICLEUI_HIDEBG(on)
+    if on then
         OverrideActionBar.Divider1:Hide()
         OverrideActionBar.Divider2:Hide()
         OverrideActionBar.Divider3:Hide()
@@ -435,33 +440,54 @@ function Upnemod:SetVehicleUISlim()
     end
 end
 
-function Upnemod:SetDruidManaBar()
-    if self.db.druidManaBar then
+function Upnemod.Set:DRUID_MANABAR(on)
+    if on then
         PlayerFrameAlternateManaBar:ClearAllPoints()
         PlayerFrameAlternateManaBar:SetPoint("TOPLEFT", PlayerFrameManaBar, "BOTTOMLEFT", 0, -2)
         PlayerFrameAlternateManaBar:SetPoint("TOPRIGHT", PlayerFrameManaBar, "BOTTOMRIGHT", 0, -2)
         ShowTextStatusBarText(PlayerFrameAlternateManaBar)
         PlayerFrameAlternateManaBarText:SetScale(0.7)
         PlayerFrameAlternateManaBarBorder:Hide()
+        return ""
+    else
+        return L["Need reload to apply"]
     end
+
 end
 
-function Upnemod:SetFramerate()
-    if not self.db.fpsAnchorFrame then
-        local anchor
-        self.db.fpsAnchor, anchor, self.db.fpsAnchorFrameAnchor, self.db.fpsOffsetX, self.db.fpsOffsetY = FramerateLabel:GetPoint()
-        self.db.fpsAnchorFrame = anchor:GetName()
-    end
-    if self.db.fpsShow then
+function Upnemod.Set:FPS_SHOW(on)
+    p(on, FramerateLabel:IsShown())
+    if on then
         if not FramerateLabel:IsShown() then
+            ToggleFramerate()
+            Upnemod:RefreshFramerate()
+        end
+    else
+        if FramerateLabel:IsShown() then
             ToggleFramerate()
         end
     end
+    return ""
+end
 
-    if self.db.fpsOption then
+function Upnemod.Set:FPS_OPTION(on) Upnemod:RefreshFramerate() return "" end
+function Upnemod.Set:FPS_Anchor() Upnemod:RefreshFramerate() end
+function Upnemod.Set:FPS_AnchorFrame() Upnemod:RefreshFramerate() end
+function Upnemod.Set:FPS_AnchorFrameAnchor() Upnemod:RefreshFramerate() end
+function Upnemod.Set:FPS_OffsetX() Upnemod:RefreshFramerate() end
+function Upnemod.Set:FPS_OffsetY() Upnemod:RefreshFramerate() end
+
+function Upnemod:RefreshFramerate()
+    if not self.db.FPS_AnchorFrame then
+        local anchor
+        self.db.FPS_Anchor, anchor, self.db.FPS_AnchorFrameAnchor, self.db.FPS_OffsetX, self.db.FPS_OffsetY = FramerateLabel:GetPoint()
+        self.db.FPS_AnchorFrame = anchor:GetName()
+    end
+
+    if self.db.FPS_OPTION then
         FramerateLabel:ClearAllPoints()
         FramerateText:ClearAllPoints()
-        FramerateLabel:SetPoint(self.db.fpsAnchor, self.db.fpsAnchorFrame, self.db.fpsAnchorFrameAnchor, self.db.fpsOffsetX, self.db.fpsOffsetY)
+        FramerateLabel:SetPoint(self.db.FPS_Anchor, self.db.FPS_AnchorFrame, self.db.FPS_AnchorFrameAnchor, self.db.FPS_OffsetX, self.db.FPS_OffsetY)
         FramerateText:SetPoint("LEFT",FramerateLabel,"RIGHT")
     end
 end
@@ -484,106 +510,96 @@ function Upnemod:BuildOptions()
         handler = self,
         type = "group",
         get = function(info) return self.db[info[#info]] end,
-        set = function(info, value) self.db[info[#info]] = value end,
+        set = function(info, value)
+            local action = info[#info] 
+            self.db[action] = value
+            if self.Set[action] then
+                local message = self.Set[action](_, value)
+                if message and L[action] then
+                    p((value and L["Turn On" ] or L["Turn Off"])..L[action]..message)
+                end
+            end
+        end,
         args = {
-            announceInterrupt = {
-                name = L["Announce Interruption"],
+            ANNOUNCE_INTERRUPT = {
+                name = L["ANNOUNCE_INTERRUPT"],
                 type = "toggle",
                 order = 101,
-                set = function(info, value) self.db[info[#info]] = value
-                        p(self:SetAnnounceInterrupt()) end,
             },
-            announceChannel = {
-                name = L["Announce Interruption: Channel"],
+            ANNOUNCE_CHANNEL = {
+                name = L["ANNOUNCE_CHANNEL"],
                 type = "select",
                 values = self.channelListOption,
                 order = 102,
-                set = function(info, value) self.db[info[#info]] = value
-                        p(self:SetAnnounceInterrupt()) end,
             },
-            tooltip_gs = {
-                name = L["Show GS/ILvl on Target Tooltip"],
+            TOOLTIP_UNIT_GS = {
+                name = L["TOOLTIP_UNIT_GS"],
                 type = "toggle",
                 order = 251,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        p(self:SetTooltipGearScore()) end,
             },
-            tooltip_auraId = {
-                name = L["Show [Spell ID] on Aura Tooltip"],
+            TOOLTIP_AURA_SRC = {
+                name = L["TOOLTIP_AURA_SRC"],
                 type = "toggle",
                 order = 301,
                 width = "full",
             },
-            tooltip_auraSrc = {
-                name = L["Show [Caster Name] on Aura Tooltip"],
+            TOOLTIP_AURA_ID = {
+                name = L["TOOLTIP_AURA_ID"],
                 type = "toggle",
                 order = 302,
                 width = "full",
             },
-            trade_classColor = {
-                name = L["Show Target Class Color on Trade Window"],
+            TRADE_CLASS_COLOR = {
+                name = L["TRADE_CLASS_COLOR"],
                 type = "toggle",
                 order = 401,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetTradeClassColor() end,
             },
-            deleteConfirm = {
-                name = L["Automatically Input DELETE CONFIRM String"],
+            DELETE_CONFIRM = {
+                name = L["DELETE_CONFIRM"],
                 type = "toggle",
                 order = 411,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetDeleteConfirm() end,
             },
-            tot_raidIcon = {
-                name = L["Show Raid Icon on ToT/ToF"],
+            RAIDICON_TOT = {
+                name = L["RAIDICON_TOT"],
                 type = "toggle",
                 order = 501,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetToTRaidIcon() end,
             },
-            inspect_gs = {
-                name = L["Show GearScore on Inspection"],
+            INSPECT_GS = {
+                name = L["INSPECT_GS"],
                 type = "toggle",
                 order = 551,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetInspectGearScore() end,
             },
-            fixCombatText = {
-                name = L["Fix Combat Message ON"],
+            FIX_COMBATTEXT = {
+                name = L["FIX_COMBATTEXT"],
                 type = "toggle",
                 order = 601,
                 width = "full",
                 desc = L["Description_FixCombatMessage"],
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetFixCombatText() end,
             },
-            callme = {
-                name = L["Alarm when Someone calls My Name"],
+            CALLME_ON = {
+                name = L["CALLME_ON"],
                 type = "toggle",
                 order = 701,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetCallme() end,
             },
-            callmeSound = {
-                name = L["Alarm Sound"],
+            CALLME_SOUND = {
+                name = L["CALLME_SOUND"],
                 type = "input",
                 order = 711,
             },
             callmePlay = {
                 name = L["Play"],
                 type = "execute",
-                value = self.db.callmePlay,
                 order = 721,
-                func = function() PlaySoundFile(self.db.callmeSound) end
+                func = function() PlaySoundFile(self.db.CALLME_SOUND) end
             },
-            vehicleUIScale = {
-                name = L["Vehicle UI Scale"],
+            VEHICLEUI_SCALE = {
+                name = L["VEHICLEUI_SCALE"],
                 type = "range",
                 order = 801,
                 width = "full",
@@ -591,78 +607,65 @@ function Upnemod:BuildOptions()
                 max = 1.2,
                 step = 0.01,
                 isPercent = true,
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetVehicleUISize() end,
             },
-            vehicleUISlim = {
-                name = L["Vehicle UI Hide BG"],
+            VEHICLEUI_HIDEBG = {
+                name = L["VEHICLEUI_HIDEBG"],
                 type = "toggle",
                 order = 802,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        self:SetVehicleUISlim() end,
             },
-            druidManaBar = {
-                name = L["Enhance Druid ManaBar"],
+            DRUID_MANABAR = {
+                name = L["DRUID_MANABAR"],
                 type = "toggle",
                 descStyle = "inline",
                 desc = L["Description_DruidManaBar"],
                 order = 901,
                 width = "full",
-                set = function(info, value) self.db[info[#info]] = value 
-                        self:SetDruidManaBar() end,
             },
-            fpsShow = {
-                name = L["FPS: Show FPS"],
+            FPS_SHOW = {
+                name = L["FPS_SHOW"],
                 type = "toggle",
                 order = 1001,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsOption = {
-                name = L["FPS: Move Frame"],
+            FPS_OPTION = {
+                name = L["FPS_OPTION"],
                 type = "toggle",
                 order = 1002,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsAnchor = {
+            FPS_Anchor = {
                 name = L["FPS: Anchor Point"],
                 type = "select",
                 style = "dropdown",
                 values = anchorPoints,
                 order = 1010,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsAnchorFrame = {
+            FPS_AnchorFrame = {
                 name = L["FPS: Anchor Frame"],
                 type = "input",
                 order = 1020,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsAnchorFrameAnchor = {
+            FPS_AnchorFrameAnchor = {
                 name = L["FPS: Anchor Frame's Anchor Point"],
                 type = "select",
                 style = "dropdown",
                 values = anchorPoints,
                 order = 1030,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsOffsetX = {
-                name = L["X Offset"],
+            FPS_OffsetX = {
+                name = L["FPS: X Offset"],
                 type = "range",
                 softMin = -200,
                 softMax = 200,
                 bigStep = 10,
                 order = 1040,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
-            fpsOffsetY = {
-                name = L["Y Offset"],
+            FPS_OffsetY = {
+                name = L["FPS: Y Offset"],
                 type = "range",
                 softMin = -200,
                 softMax = 200,
                 bigStep = 10,
                 order = 1050,
-                set = function(info, value) self.db[info[#info]] = value self:SetFramerate() end,
             },
         }
     }
