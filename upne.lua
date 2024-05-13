@@ -33,7 +33,6 @@ Upnemod.dbDefault = {
         [player] = {
             announceInterrupt = true,
             announceChannel = "SAY",
-            tooltip_ilvl = true,
             tooltip_auraSrc = true,
             tooltip_auraId = true,
             trade_classColor = true,
@@ -70,7 +69,6 @@ function Upnemod:OnInitialize()
 
     self:SetTooltipAura()
     self:SetAnnounceInterrupt()
-    self:SetTooltipIlvl()
     self:SetTooltipGearScore()
     self:SetTradeClassColor()
     self:SetDeleteConfirm()
@@ -160,49 +158,6 @@ function Upnemod:SetTooltipHandler(tooltip, scriptName, func)
     end
 end
 
-function Upnemod:SetTooltipIlvl()
-    local function GameTooltip_Ilvl(tooltip, ...)
-        local _, itemLink = tooltip:GetItem()
-        if itemLink then
-            local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-            local itemID, _ = GetItemInfoInstant(itemLink)
-
-            if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", L["Item Level"], itemLevel), "(ID:  |cffffffff"..itemID.."|r)")
-            end
-        end
-    end
-
-    local function GameTooltip_Ilvl_Narrow(tooltip, ...)
-        local _, itemLink = tooltip:GetItem()
-        if itemLink then
-            local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-            local itemID, _ = GetItemInfoInstant(itemLink)
-
-            if itemType == GetItemClassInfo(LE_ITEM_CLASS_WEAPON) or itemType == GetItemClassInfo(LE_ITEM_CLASS_ARMOR) then
-                tooltip:AddLine(L["Item Level"].." |cffffffff" .. itemLevel .. "|r")
-                tooltip:AddLine("ID |cffffffff" .. itemID .. "|r")
-            end
-        end
-    end
-
-    local result = ""
-    if self.db.tooltip_ilvl then
-        self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
-        self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", GameTooltip_Ilvl)
-        self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
-        self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", GameTooltip_Ilvl_Narrow)
-        result =  L["Turn On" ]..L["Show [Item Lv/ID] on Tooltip"]
-    else
-        self:SetTooltipHandler(GameTooltip, "OnTooltipSetItem", nil)
-        self:SetTooltipHandler(ItemRefTooltip, "OnTooltipSetItem", nil)
-        self:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
-        self:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
-        result =  L["Turn Off"]..L["Show [Item Lv/ID] on Tooltip"]
-    end
-    return result
-end
-
 function Upnemod:SetTooltipGearScore()
     local function GameTooltip_GearScore(tooltip, ...)
         local _, unitID = tooltip:GetUnit()
@@ -230,8 +185,8 @@ function Upnemod:SetTooltipGearScore()
     end
 end
 
-local function upne_AuraHandler(uaf, gt, ...)
-    local _, _, _, _, _, _, src, _, _, auraId = uaf(...)	-- UnitAura or UnitBuff or UnitDebuff
+local function upne_AuraHandler(auraFunc, gt, ...)
+    local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
     local db = Upnemod.db
     if auraId then
         local left = db.tooltip_auraId and ("ID: |cffffffff"..auraId.."|r") or " "
@@ -253,24 +208,9 @@ local function upne_AuraHandler(uaf, gt, ...)
 end
 
 function Upnemod:SetTooltipAura()
-    self.sua = GameTooltip.SetUnitAura
-    self.sub = GameTooltip.SetUnitBuff
-    self.sud = GameTooltip.SetUnitDebuff
-
-    if self.db.tooltip_auraSrc then
-        GameTooltip.SetUnitAura = function(gt, ...)
-            self.sua(gt, ...)
-            upne_AuraHandler(UnitAura, gt, ...)
-        end
-        GameTooltip.SetUnitBuff = function(gt, ...)
-            self.sub(gt, ...)
-            upne_AuraHandler(UnitBuff, gt, ...)
-        end
-        GameTooltip.SetUnitDebuff = function(gt, ...)
-            self.sud(gt, ...)
-            upne_AuraHandler(UnitDebuff, gt, ...)
-        end
-    end
+    hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
+    hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
+    hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
 end
 
 function Upnemod:SetTradeClassColor()
@@ -323,23 +263,15 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
             raidTarget = ""
         end
         -- RaidTarget end
+        local spellLink = extraSpellId and GetSpellLink(extraSpellId) or "["..extraSpellName.."]"
 
         if (not IsInGroup()) then
-            p(L["Interrupt"].." - "..raidTarget..destName..L["'s "]..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName) .."")
+            p(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink)
         else
-            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName..L["'s "]..(extraSpellId and GetSpellLink(extraSpellId) or extraSpellName), self.db.announceChannel)
+            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink, self.db.announceChannel)
         end
     end
 end
-
---[[
-    itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount,
-    itemEquipLoc, itemIcon, itemSellPrice, itemClassID, itemSubClassID, bindType, expacID, itemSetID, isCraftingReagent
-    = GetItemInfo(itemID or "itemString" or "itemName" or "itemLink") 
-
-    itemID, itemType, itemSubType, itemEquipLoc, icon, itemClassID, itemSubClassID
-    = GetItemInfoInstant(itemID or "itemString" or "itemName" or "itemLink") 
-]]
 
 function Upnemod:TRADE_SHOW(...)
     TradeFrameRecipientNameText:SetTextColor(RAID_CLASS_COLORS[select(2,UnitClass("npc"))]:GetRGBA())
@@ -569,14 +501,6 @@ function Upnemod:BuildOptions()
                 set = function(info, value) self.db[info[#info]] = value
                         p(self:SetAnnounceInterrupt()) end,
             },
-            tooltip_ilvl = {
-                name = L["Show [Item Lv/ID] on Tooltip"],
-                type = "toggle",
-                order = 201,
-                width = "full",
-                set = function(info, value) self.db[info[#info]] = value
-                        p(self:SetTooltipIlvl()) end,
-            },
             tooltip_gs = {
                 name = L["Show GS/ILvl on Target Tooltip"],
                 type = "toggle",
@@ -659,7 +583,7 @@ function Upnemod:BuildOptions()
                 func = function() PlaySoundFile(self.db.callmeSound) end
             },
             vehicleUIScale = {
-                name = L["Zoom Vehicle UI Size"],
+                name = L["Vehicle UI Scale"],
                 type = "range",
                 order = 801,
                 width = "full",
@@ -671,7 +595,7 @@ function Upnemod:BuildOptions()
                         self:SetVehicleUISize() end,
             },
             vehicleUISlim = {
-                name = L["Hide Vehicle UI Background"],
+                name = L["Vehicle UI Hide BG"],
                 type = "toggle",
                 order = 802,
                 width = "full",
