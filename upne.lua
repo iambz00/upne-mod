@@ -456,7 +456,6 @@ function Upnemod.Set:DRUID_MANABAR(on)
 end
 
 function Upnemod.Set:FPS_SHOW(on)
-    p(on, FramerateLabel:IsShown())
     if on then
         if not FramerateLabel:IsShown() then
             ToggleFramerate()
@@ -532,10 +531,16 @@ function Upnemod:BuildOptions()
                 values = self.channelListOption,
                 order = 102,
             },
+            INSPECT_GS = {
+                name = L["INSPECT_GS"],
+                type = "toggle",
+                order = 151,
+                width = "full",
+            },
             TOOLTIP_UNIT_GS = {
                 name = L["TOOLTIP_UNIT_GS"],
                 type = "toggle",
-                order = 251,
+                order = 152,
                 width = "full",
             },
             TOOLTIP_AURA_SRC = {
@@ -566,12 +571,6 @@ function Upnemod:BuildOptions()
                 name = L["RAIDICON_TOT"],
                 type = "toggle",
                 order = 501,
-                width = "full",
-            },
-            INSPECT_GS = {
-                name = L["INSPECT_GS"],
-                type = "toggle",
-                order = 551,
                 width = "full",
             },
             FIX_COMBATTEXT = {
