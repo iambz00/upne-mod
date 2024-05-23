@@ -3,12 +3,14 @@ local L = LibStub("AceLocale-3.0"):NewLocale(addonName, "koKR")
 
 if not L then return end
 
-L["CHANNELS_SAY"]     = "S,말,ㄴ,SAY"
-L["CHANNELS_YELL"]    = "Y,외침,외치기,SHOUT,ㅛ,YELL,SH,SHOUT"
-L["CHANNELS_PARTY"]   = "P,PARTY,ㅔ,파티,ㅍ"
-L["CHANNELS_RAID"]    = "공,RAID,RA,공격대,공대,RSAY"
-L["CHANNELS_INSTANCE"] = "I,인스턴스"
-L["CHANNELS_RAID_WARNING"] = "RW,경보"
+L["CHANNELS_LIST"] = {
+    SAY     = "S,말,ㄴ,SAY",
+    YELL    = "Y,외침,외치기,SHOUT,ㅛ,YELL,SH,SHOUT",
+    PARTY   = "P,PARTY,ㅔ,파티,ㅍ",
+    RAID    = "공,RAID,RA,공격대,공대,RSAY",
+    INSTANCE = "I,인스턴스",
+    RAID_WARNING = "RW,경보",
+}
 
 L["SAY"]     = "일반"
 L["YELL"]    = "외침"

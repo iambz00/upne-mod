@@ -1,18 +1,18 @@
-local addonName, addon = ...
+local addonName, _ = ...
 Upnemod = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0")
 Upnemod.name = addonName
-Upnemod.version = GetAddOnMetadata(addonName, "Version")
+Upnemod.version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, true)
 local LibGearScore = LibStub:GetLibrary("LibGearScore.1000", true)
 
-local CHANNEL_LIST = { "SAY", "YELL", "PARTY", "RAID", "INSTANCE", "RAID_WARNING" }
 Upnemod.channelList = { }
-for _, channel in ipairs(CHANNEL_LIST) do
-    for keyword in L["CHANNELS_"..channel]:gmatch("([^,]+)") do
-        Upnemod.channelList[keyword] = channel
+for ch, channel_text in pairs(L["CHANNELS_LIST"]) do
+    for cmd in channel_text:gmatch("([^,]+)") do
+        Upnemod.channelList[cmd] = ch
     end
 end
+
 Upnemod.channelListOption = {
     SAY     = L["SAY"],
     YELL    = L["YELL"],
@@ -57,7 +57,7 @@ local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
 local p = function(str, ...) print(MSG_PREFIX.."|cffdddddd"..tostring(str).."|r", ...) end
 
 Upnemod.Set = { }
-local n = {
+local normalize = {
     announceInterrupt   = "ANNOUNCE_INTERRUPT",
     announceChannel     = "ANNOUNCE_CHANNEL",
     tooltip_auraSrc     = "TOOLTIP_AURA_SRC",
@@ -127,16 +127,16 @@ function Upnemod:OnInitialize()
 
     -- Convert DB
     local is_old_options = false
-    for ch, db in pairs(self.wholeDb.realm) do
-        for k, _ in pairs(n) do
+    for _, db in pairs(self.wholeDb.realm) do
+        for k, _ in pairs(normalize) do
             if db[k] then
                 is_old_options = true
             end
         end
     end
     if is_old_options then
-        for ch, db in pairs(self.wholeDb.realm) do
-            for k, v in pairs(n) do
+        for _, db in pairs(self.wholeDb.realm) do
+            for k, v in pairs(normalize) do
                 if v then
                     db[v] = db[k]
                 end
@@ -175,7 +175,7 @@ function Upnemod:OnInitialize()
     SlashCmdList["UPNE"] = function(msg)
         local cmd, val = msg:match("^(%S*)%s*(.*)")
         if L["SLASH_OPT_INTERRUPT"][cmd] then
-            channel = channelList[val:upper()]
+            local channel = Upnemod.channelList[val:upper()]
             if channel then
                 self.db.ANNOUNCE_INTERRUPT = true
                 self.db.ANNOUNCE_CHANNEL = channel
@@ -226,8 +226,10 @@ end
 function Upnemod.Set:ANNOUNCE_CHANNEL() end
 
 function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
-    local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
-        spellId, spellName, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
+    --local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
+    --    spellId, spellName, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
+    local _, combatEvent, _, sourceGUID, _, _, _, _, destName, _, destRaidFlags, 
+        _, _, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
     if combatEvent == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
         if not destName then destName = L["No Target"] end
 
@@ -242,23 +244,22 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
             -- raidTarget = raidTarget >> 1
             raidTarget = raidTarget / 2
         end
+        local rt = ""
         if raidTarget >= 1 and raidTarget <= 8 then
-            raidTarget = "{rt"..raidTarget.."}"
-        else
-            raidTarget = ""
+            rt = "{rt"..raidTarget.."}"
         end
         -- RaidTarget end
         local spellLink = extraSpellId and GetSpellLink(extraSpellId) or "["..extraSpellName.."]"
 
         if (not IsInGroup()) then
-            p(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink)
+            p(L["Interrupt"].." - "..rt..destName.." "..spellLink)
         else
-            SendChatMessage(L["Interrupt"].." - "..raidTarget..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
+            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
         end
     end
 end
 
-function Upnemod.Set:TOOLTIP_UNIT_GS(on) return "" end
+function Upnemod.Set:TOOLTIP_UNIT_GS() return "" end
 function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
 function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
 
@@ -316,13 +317,11 @@ function Upnemod:SetupToTRaidIcon()
             tx:SetDrawLayer("Artwork",0)
             tx:Show()
         end
-        hooksecurefunc("UnitFrame_OnEvent",upne_TargetofTarget_Update)
+        hooksecurefunc("UnitFrame_OnEvent", function()
+            SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
+            SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
+        end)
     end
-end
-
-function upne_TargetofTarget_Update(self, elapsed)
-    SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
-    SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
 end
 
 function Upnemod.Set:INSPECT_GS(on)
@@ -469,7 +468,7 @@ function Upnemod.Set:FPS_SHOW(on)
     return ""
 end
 
-function Upnemod.Set:FPS_OPTION(on) Upnemod:RefreshFramerate() return "" end
+function Upnemod.Set:FPS_OPTION() Upnemod:RefreshFramerate() return "" end
 function Upnemod.Set:FPS_Anchor() Upnemod:RefreshFramerate() end
 function Upnemod.Set:FPS_AnchorFrame() Upnemod:RefreshFramerate() end
 function Upnemod.Set:FPS_AnchorFrameAnchor() Upnemod:RefreshFramerate() end

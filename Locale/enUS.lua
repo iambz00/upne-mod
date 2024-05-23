@@ -3,12 +3,14 @@ local L = LibStub("AceLocale-3.0"):NewLocale(addonName, "enUS", true)
 
 if not L then return end
 
-L["CHANNELS_SAY"]     = "S,SAY"
-L["CHANNELS_YELL"]    = "Y,YELL,SH,SHOUT"
-L["CHANNELS_PARTY"]   = "P,PARTY"
-L["CHANNELS_RAID"]    = "RA,RAID,RSAY"
-L["CHANNELS_INSTANCE"] = "I,INSTANCE"
-L["CHANNELS_RAID_WARNING"] = "RW"
+L["CHANNELS_LIST"] = {
+    SAY     = "S,SAY",
+    YELL    = "Y,YELL,SH,SHOUT",
+    PARTY   = "P,PARTY",
+    RAID    = "RA,RAID,RSAY",
+    INSTANCE = "I,INSTANCE",
+    RAID_WARNING = "RW",
+}
 
 L["SAY"]     = true
 L["YELL"]    = true
