@@ -6,6 +6,12 @@ Upnemod.version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, true)
 local LibGearScore = LibStub:GetLibrary("LibGearScore.1000", true)
 
+local playerGUID
+local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
+local p = function(str, ...) print(MSG_PREFIX.."|cffdddddd"..tostring(str).."|r", ...) end
+
+Upnemod.Set = { }
+
 Upnemod.channelList = { }
 for ch, channel_text in pairs(L["CHANNELS_LIST"]) do
     for cmd in channel_text:gmatch("([^,]+)") do
@@ -46,6 +52,7 @@ Upnemod.dbDefault = {
             VEHICLEUI_SCALE     = 0.6,
             VEHICLEUI_HIDEBG    = true,
             DRUID_MANABAR       = false,
+            LFG_LEAVE_INSTANCE  = true,
             INSTANCE_CHAT_KR    = true,
             FPS_SHOW            = false,
             FPS_OPTION          = false,
@@ -53,11 +60,25 @@ Upnemod.dbDefault = {
     }
 }
 
-local playerGUID
-local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
-local p = function(str, ...) print(MSG_PREFIX.."|cffdddddd"..tostring(str).."|r", ...) end
+StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
+    text = format("%s - %s %s!\n%s", MSG_PREFIX, INSTANCE, COMPLETE, INSTANCE_PARTY_LEAVE),
+    --text = MSG_PREFIX.." - "..COMPLETE.."!\n"..INSTANCE_PARTY_LEAVE, --L["Leave Instance?"],
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    OnAccept = function(self)
+        if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+            C_PartyInfo.LeaveParty(LE_PARTY_CATEGORY_INSTANCE)
+            -- LeaveInstanceParty()
+        end
+    end,
+    timeout = 15,
+    showAlert = true,
+    --enterClicksFirstButton = true,
+    hideOnEscape = true,
+    --sound = LFG_DungeonReady, -- 17318
+    --OnHide = function(self) self.editBox:SetText("") end,
+}
 
-Upnemod.Set = { }
 local normalize = {
     announceInterrupt   = "ANNOUNCE_INTERRUPT",
     announceChannel     = "ANNOUNCE_CHANNEL",
@@ -301,6 +322,8 @@ function Upnemod:DELETE_ITEM_CONFIRM(...)
     --StaticPopup1Button1:Enable()
 end
 
+function Upnemod:RAIDICON_TOT() return "" end
+
 function Upnemod:SetupToTRaidIcon()
     if self.db.RAIDICON_TOT then
         local t = TargetFrameToT
@@ -463,6 +486,21 @@ function Upnemod.Set:DRUID_MANABAR(on)
 
 end
 
+function Upnemod.Set:LFG_LEAVE_INSTANCE(on)
+    if on then
+        Upnemod:RegisterEvent("LFG_COMPLETION_REWARD")
+    else
+        Upnemod:UnregisterEvent("LFG_COMPLETION_REWARD")
+    end
+    return ""
+end
+
+function Upnemod:LFG_COMPLETION_REWARD()
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        StaticPopup_Show("UPNE_LFG_LEAVE_INSTANCE")
+    end
+end
+
 function Upnemod.Set:INSTANCE_CHAT_KR(on)
     if GetLocale() == "koKR" then
         if on then
@@ -601,7 +639,7 @@ function Upnemod:BuildOptions()
                 type = "toggle",
                 order = 601,
                 width = "full",
-                desc = L["Description_FixCombatMessage"],
+                desc = L["FIX_COMBATTEXT_HELP"],
             },
             CALLME_ON = {
                 name = L["CALLME_ON"],
@@ -640,8 +678,16 @@ function Upnemod:BuildOptions()
                 name = L["DRUID_MANABAR"],
                 type = "toggle",
                 descStyle = "inline",
-                desc = L["Description_DruidManaBar"],
+                desc = L["DRUID_MANABAR_HELP"],
                 order = 901,
+                width = "full",
+            },
+            LFG_LEAVE_INSTANCE = {
+                name = L["LFG_LEAVE_INSTANCE"],
+                type = "toggle",
+                descStyle = "inline",
+                desc = L["LFG_LEAVE_INSTANCE_HELP"],
+                order = 911,
                 width = "full",
             },
             -- INSTANCE_CHAT_KR = {},
