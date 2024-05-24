@@ -8,7 +8,7 @@ L["CHANNELS_LIST"] = {
     YELL    = "Y,외침,외치기,SHOUT,ㅛ,YELL,SH,SHOUT",
     PARTY   = "P,PARTY,ㅔ,파티,ㅍ",
     RAID    = "공,RAID,RA,공격대,공대,RSAY",
-    INSTANCE = "I,인스턴스",
+    INSTANCE_CHAT = "I,인스턴스,ㅑ",
     RAID_WARNING = "RW,경보",
 }
 
@@ -67,6 +67,9 @@ L["FPS: Anchor Frame's Anchor Point"] = "기준 프레임의 기준점"
 L["FPS: X Offset"]      = "좌우 이동"
 L["FPS: Y Offset"]      = "상하 이동"
 L["Need reload to apply"] = "적용을 위해 리로드가 필요합니다."
+
+-- koKR only
+L["INSTANCE_CHAT_KR"] = "/ㅑ 를 인스턴스 채팅으로 사용"
 
 L["TOPLEFT"]    = "좌상"
 L["TOP"]        = "상"

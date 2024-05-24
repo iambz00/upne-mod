@@ -8,7 +8,7 @@ L["CHANNELS_LIST"] = {
     YELL    = "Y,YELL,SH,SHOUT",
     PARTY   = "P,PARTY",
     RAID    = "RA,RAID,RSAY",
-    INSTANCE = "I,INSTANCE",
+    INSTANCE_CHAT = "I,INSTANCE",
     RAID_WARNING = "RW",
 }
 
@@ -67,6 +67,9 @@ L["FPS: Anchor Frame's Anchor Point"] = true
 L["FPS: X Offset"]      = true
 L["FPS: Y Offset"]      = true
 L["Need reload to apply"] = true
+
+-- koKR only
+--L["INSTANCE_CHAT_KR"] = true
 
 L["TOPLEFT"]    = true
 L["TOP"]        = true

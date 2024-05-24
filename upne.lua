@@ -18,7 +18,7 @@ Upnemod.channelListOption = {
     YELL    = L["YELL"],
     PARTY   = L["PARTY"],
     RAID    = L["RAID"],
-    INSTANCE = L["INSTANCE"],
+    INSTANCE_CHAT = L["INSTANCE"],
     RAID_WARNING = L["RAID_WARNING"]
 }
 
@@ -46,6 +46,7 @@ Upnemod.dbDefault = {
             VEHICLEUI_SCALE     = 0.6,
             VEHICLEUI_HIDEBG    = true,
             DRUID_MANABAR       = false,
+            INSTANCE_CHAT_KR    = true,
             FPS_SHOW            = false,
             FPS_OPTION          = false,
         }
@@ -166,7 +167,9 @@ function Upnemod:OnInitialize()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_GS", "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION"}) do self.Set[v](_, self.db[v]) end
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_GS",
+     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "INSTANCE_CHAT_KR", "FPS_SHOW", "FPS_OPTION"})
+        do self.Set[v](_, self.db[v]) end
 
     -- Slash Commands
     SLASH_UPNE1 = "/upne"
@@ -254,7 +257,13 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
         if (not IsInGroup()) then
             p(L["Interrupt"].." - "..rt..destName.." "..spellLink)
         else
-            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
+            local channel = self.db.ANNOUNCE_CHANNEL
+            if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+                if channel == "PARTY" or channel == "RAID" or channel == "RAID_WARNING" then
+                    channel = "INSTANCE_CHAT"
+                end
+            end
+            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, channel)
         end
     end
 end
@@ -454,6 +463,21 @@ function Upnemod.Set:DRUID_MANABAR(on)
 
 end
 
+function Upnemod.Set:INSTANCE_CHAT_KR(on)
+    if GetLocale() == "koKR" then
+        if on then
+            Upnemod.SLASH_INVITE4_OLD = SLASH_INVITE4
+            Upnemod.SLASH_INSTANCE_CHAT2_OLD = SLASH_INSTANCE_CHAT2
+            SLASH_INSTANCE_CHAT2 = SLASH_INVITE4
+            SLASH_INVITE4 = SLASH_INVITE3
+        else
+            SLASH_INVITE4 = Upnemod.SLASH_INVITE4_OLD or SLASH_INVITE4
+            SLASH_INSTANCE_CHAT2 = Upnemod.SLASH_INSTANCE_CHAT2_OLD or SLASH_INSTANCE_CHAT2
+        end
+    end
+    return ""
+end
+
 function Upnemod.Set:FPS_SHOW(on)
     if on then
         if not FramerateLabel:IsShown() then
@@ -502,7 +526,7 @@ function Upnemod:BuildOptions()
         BOTTOM      = L["BOTTOM"]     ,
         BOTTOMRIGHT = L["BOTTOMRIGHT"],
     }
-    
+
     self.optionsTable = {
         name = self.name,
         handler = self,
@@ -620,6 +644,7 @@ function Upnemod:BuildOptions()
                 order = 901,
                 width = "full",
             },
+            -- INSTANCE_CHAT_KR = {},
             FPS_SHOW = {
                 name = L["FPS_SHOW"],
                 type = "toggle",
@@ -667,4 +692,12 @@ function Upnemod:BuildOptions()
             },
         }
     }
+    if GetLocale() == "koKR" then
+        self.optionsTable.args.INSTANCE_CHAT_KR = {
+            name = L["INSTANCE_CHAT_KR"],
+            type = "toggle",
+            order = 991,
+            width = "full",
+        }
+    end
 end
