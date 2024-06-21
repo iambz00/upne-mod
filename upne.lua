@@ -53,6 +53,7 @@ Upnemod.dbDefault = {
             VEHICLEUI_HIDEBG    = true,
             DRUID_MANABAR       = false,
             LFG_LEAVE_INSTANCE  = true,
+            LFG_LEAVE_WAIT      = 90,
             INSTANCE_CHAT_KR    = true,
             FPS_SHOW            = false,
             FPS_OPTION          = false,
@@ -71,7 +72,7 @@ StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
             -- LeaveInstanceParty()
         end
     end,
-    timeout = 15,
+    timeout = 90,
     showAlert = true,
     --enterClicksFirstButton = true,
     hideOnEscape = true,
@@ -143,6 +144,18 @@ local function upne_AuraHandler(auraFunc, gt, ...)
     end
 end
 
+local function upne_ChatEdit_ParseText(editbox)
+    if SLASH_INSTANCE_CHAT_UPNE then
+        local text = editbox:GetText()
+        if text:match("^(/.-)%s") == SLASH_INSTANCE_CHAT_UPNE then
+            editbox:SetAttribute("chatType", "INSTANCE_CHAT")
+            editbox:SetAttribute("stickyType", "INSTANCE_CHAT")
+            editbox:SetText(text:match("^/[^%s]+%s(.*)$") or "")
+            ChatEdit_UpdateHeader(editbox)
+        end
+    end
+end
+
 function Upnemod:OnInitialize()
     self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
     self.db = self.wholeDb.realm[player]
@@ -183,14 +196,20 @@ function Upnemod:OnInitialize()
     hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
+    hooksecurefunc("ChatEdit_ParseText", upne_ChatEdit_ParseText)
     ---- Raid Target Icon on TargetOfTarget/TargetOfFocus
     self:SetupToTRaidIcon()
     self:TurnOnCombatText()
 
     -- Apply options
     for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_GS",
-     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "INSTANCE_CHAT_KR", "FPS_SHOW", "FPS_OPTION"})
+     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION"})
         do self.Set[v](_, self.db[v]) end
+
+    -- koKR Only
+    if GetLocale() == "koKR" then
+        self.Set["INSTANCE_CHAT_KR"](_, self.db["INSTANCE_CHAT_KR"])
+    end
 
     -- Slash Commands
     SLASH_UPNE1 = "/upne"
@@ -259,7 +278,7 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
 
         -- Resolving RaidTarget
         -- COMBATLOG_OBJECT_RAIDTARGET_MASK = 0x000000FF in FrameXML/Constants.lua
-        local raidTarget = bit.band(destRaidFlags, COMBATLOG_OBJECT_RAIDTARGET_MASK)
+        local raidTarget = bit.band(destRaidFlags or 0, COMBATLOG_OBJECT_RAIDTARGET_MASK)
         for n=1, 8 do
             if raidTarget == 1 then
                 raidTarget = n
@@ -496,7 +515,9 @@ function Upnemod.Set:LFG_LEAVE_INSTANCE(on)
 end
 
 function Upnemod:LFG_COMPLETION_REWARD()
+    local db = self.db
     if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"].timeout = db.LFG_LEAVE_WAIT or 90
         StaticPopup_Show("UPNE_LFG_LEAVE_INSTANCE")
     end
 end
@@ -504,13 +525,9 @@ end
 function Upnemod.Set:INSTANCE_CHAT_KR(on)
     if GetLocale() == "koKR" then
         if on then
-            Upnemod.SLASH_INVITE4_OLD = SLASH_INVITE4
-            Upnemod.SLASH_INSTANCE_CHAT2_OLD = SLASH_INSTANCE_CHAT2
-            SLASH_INSTANCE_CHAT2 = SLASH_INVITE4
-            SLASH_INVITE4 = SLASH_INVITE3
+            SLASH_INSTANCE_CHAT_UPNE = "/ㅑ"
         else
-            SLASH_INVITE4 = Upnemod.SLASH_INVITE4_OLD or SLASH_INVITE4
-            SLASH_INSTANCE_CHAT2 = Upnemod.SLASH_INSTANCE_CHAT2_OLD or SLASH_INSTANCE_CHAT2
+            SLASH_INSTANCE_CHAT_UPNE = nil
         end
     end
     return ""
@@ -686,9 +703,15 @@ function Upnemod:BuildOptions()
                 name = L["LFG_LEAVE_INSTANCE"],
                 type = "toggle",
                 descStyle = "inline",
-                desc = L["LFG_LEAVE_INSTANCE_HELP"],
                 order = 911,
                 width = "full",
+            },
+            LFG_LEAVE_WAIT = {
+                name = L["LFG_LEAVE_WAIT"],
+                type = "range",
+                min = 30, max = 300,
+                step = 1,
+                order = 912,
             },
             -- INSTANCE_CHAT_KR = {},
             FPS_SHOW = {
