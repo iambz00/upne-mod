@@ -1,14 +1,13 @@
-tag d887963e455626d6f0b000318dd63d498cf002ad 1.0.r7
+tag 91ebff4fdcf3c863cbb74acbe2515c12a557e885 1.0.r9
 Author:	Road-block <dridzt.addons@hotmail.com>
-Date:	Thu Jan 19 19:01:41 2023 +0200
+Date:	Fri Feb 9 02:10:23 2024 +0200
 
-3.4.1 update
+combat restrict range check, metadata updates
 
-commit d180f5388f684b3ed5b62c998efd843898e7f494
+commit db8acf1da15f1fbb96e9fea5932754d5f2eae6d0
 Author: Road-block <dridzt.addons@hotmail.com>
-Date:   Thu Jan 19 18:58:40 2023 +0200
+Date:   Fri Feb 9 02:09:06 2024 +0200
 
-    add a friendly :HeraldCheck(unit) method that returns pass/fail and failed slots
-    better cleanup when the instance replaces an older revision
-    up revision and update interface numbers for 3.4.1
+    combat restrictions to range checking
+    metadata updates
 

@@ -47,8 +47,8 @@ Upnemod.dbDefault = {
             FIX_COMBATTEXT      = true,
             CALLME_ON           = false,
             CALLME_SOUND        = 568197,
-            TOOLTIP_UNIT_GS     = true,
-            INSPECT_GS          = true,
+            TOOLTIP_UNIT_ILVL   = true,
+            INSPECT_ILVL        = true,
             VEHICLEUI_SCALE     = 0.6,
             VEHICLEUI_HIDEBG    = true,
             DRUID_MANABAR       = false,
@@ -91,8 +91,10 @@ local normalize = {
     fixCombatText       = "FIX_COMBATTEXT",
     callme              = "CALLME_ON",
     callmeSound         = "CALLME_SOUND",
-    tooltip_gs          = "TOOLTIP_UNIT_GS",
-    inspect_gs          = "INSPECT_GS",
+    tooltip_gs          = "TOOLTIP_UNIT_ILVL",
+    inspect_gs          = "INSPECT_ILVL",
+    TOOLTIP_UNIT_GS     = "TOOLTIP_UNIT_ILVL",
+    INSPECT_GS          = "INSPECT_ILVL",
     vehicleUIScale      = "VEHICLEUI_SCALE",
     vehicleUISlim       = "VEHICLEUI_HIDEBG",
     druidManaBar        = "DRUID_MANABAR",
@@ -106,17 +108,14 @@ local normalize = {
     tooltip_ilvl        = false,
 }
 
-local function upne_Tooltiphandler_GearScore(tooltip, ...)
+local function upne_OnTooltipSetUnit(tooltip, ...)
     local _, unitID = tooltip:GetUnit()
     if unitID then
-        local guid, gearScore = LibGearScore:GetScore(unitID)
+        local _, gearScore = LibGearScore:GetScore(unitID)
         if gearScore then
-            local gs = gearScore.GearScore or 0
-            if tonumber(gs) > 0 then
-                gs = gearScore.Color and gearScore.Color:WrapTextInColorCode(gs) or gs
-                local ilvl = gearScore.AvgItemLevel or 0
-                --tooltip:AddDoubleLine(gs, ilvl)
-                tooltip:AddLine(gs .."|cff9d9d9d/|r|cffffffff".. ilvl.."|r")
+            local ilvl = gearScore.AvgItemLevel or 0
+            if tonumber(ilvl) > 0 then
+                tooltip:AddDoubleLine(L["Item Level"], "|cffffffff".. ilvl.."|r")
             end
         end
     end
@@ -191,7 +190,7 @@ function Upnemod:OnInitialize()
 
     -- Hooks and Setups
     ---- GearScore on Tooltip
-    GameTooltip:HookScript("OnTooltipSetUnit", upne_Tooltiphandler_GearScore)
+    GameTooltip:HookScript("OnTooltipSetUnit", upne_OnTooltipSetUnit)
     ---- Spell Caster/ID on Aura/Buff/Debuff Tooltip
     hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
@@ -202,7 +201,7 @@ function Upnemod:OnInitialize()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_GS",
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL",
      "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION"})
         do self.Set[v](_, self.db[v]) end
 
@@ -308,7 +307,7 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
     end
 end
 
-function Upnemod.Set:TOOLTIP_UNIT_GS() return "" end
+function Upnemod.Set:TOOLTIP_UNIT_ILVL() return "" end
 function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
 function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
 
@@ -375,7 +374,7 @@ function Upnemod:SetupToTRaidIcon()
     end
 end
 
-function Upnemod.Set:INSPECT_GS(on)
+function Upnemod.Set:INSPECT_ILVL(on)
     if on then
         Upnemod:RegisterEvent("INSPECT_READY")
         LibGearScore.RegisterCallback(Upnemod, "LibGearScore_Update")
@@ -391,8 +390,7 @@ end
 function Upnemod:LibGearScore_Update(event, guid, gearScore)
     if self.inspectingGUID and guid and self.inspectGearScore and InspectModelFrame then
         if gearScore then
-            self.inspectGearScore:SetTextColor((gearScore.Color or CreateColor(0.62, 0.62, 0.62)):GetRGB())
-            self.inspectGearScore:SetText((gearScore.GearScore or 0).."\n|cffffffff"..(gearScore.AvgItemLevel or 0).."|r")
+            self.inspectGearScore:SetText(gearScore.AvgItemLevel or 0)
             self.inspectGearScore:Show()
         end
     end
@@ -609,14 +607,14 @@ function Upnemod:BuildOptions()
                 values = self.channelListOption,
                 order = 102,
             },
-            INSPECT_GS = {
-                name = L["INSPECT_GS"],
+            INSPECT_ILVL = {
+                name = L["INSPECT_ILVL"],
                 type = "toggle",
                 order = 151,
                 width = "full",
             },
-            TOOLTIP_UNIT_GS = {
-                name = L["TOOLTIP_UNIT_GS"],
+            TOOLTIP_UNIT_ILVL = {
+                name = L["TOOLTIP_UNIT_ILVL"],
                 type = "toggle",
                 order = 152,
                 width = "full",
