@@ -224,9 +224,9 @@ function Upnemod:OnInitialize()
             else
                 self.db.ANNOUNCE_INTERRUPT = false
             end
-            self.Set:ANNOUNCE_INTERRUPT()
+            local message = self.Set:ANNOUNCE_INTERRUPT(self.db.ANNOUNCE_INTERRUPT)
+            p((self.db.ANNOUNCE_INTERRUPT and L["Turn On" ] or L["Turn Off"])..L["ANNOUNCE_INTERRUPT"]..message)
         else
-            InterfaceOptionsFrame_OpenToCategory(self.name)
             InterfaceOptionsFrame_OpenToCategory(self.name)
         end
     end
@@ -259,13 +259,14 @@ end
 function Upnemod.Set:ANNOUNCE_INTERRUPT(on)
     if on then
         Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        return Upnemod.channelListOption[Upnemod.db.ANNOUNCE_CHANNEL]
+        return " - "..Upnemod.channelListOption[Upnemod.db.ANNOUNCE_CHANNEL]
     else
         Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
         return ""
     end
 end
-function Upnemod.Set:ANNOUNCE_CHANNEL() end
+
+function Upnemod.Set:ANNOUNCE_CHANNEL() return "" end
 
 function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
     --local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
@@ -656,6 +657,7 @@ function Upnemod:BuildOptions()
                 width = "full",
                 desc = L["FIX_COMBATTEXT_HELP"],
             },
+            -- INSTANCE_CHAT_KR = {},
             CALLME_ON = {
                 name = L["CALLME_ON"],
                 type = "toggle",
@@ -711,7 +713,6 @@ function Upnemod:BuildOptions()
                 step = 1,
                 order = 912,
             },
-            -- INSTANCE_CHAT_KR = {},
             FPS_SHOW = {
                 name = L["FPS_SHOW"],
                 type = "toggle",
@@ -763,7 +764,7 @@ function Upnemod:BuildOptions()
         self.optionsTable.args.INSTANCE_CHAT_KR = {
             name = L["INSTANCE_CHAT_KR"],
             type = "toggle",
-            order = 991,
+            order = 651,
             width = "full",
         }
     end
