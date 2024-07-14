@@ -68,8 +68,8 @@ StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
     button2 = CANCEL,
     OnAccept = function(self)
         if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-            C_PartyInfo.LeaveParty(LE_PARTY_CATEGORY_INSTANCE)
-            -- LeaveInstanceParty()
+            --C_PartyInfo.LeaveParty(LE_PARTY_CATEGORY_INSTANCE)
+            LeaveInstanceParty()
         end
     end,
     timeout = 90,
