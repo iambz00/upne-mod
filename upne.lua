@@ -46,6 +46,7 @@ Upnemod.dbDefault = {
             RAIDICON_TOT        = true,
             FIX_COMBATTEXT      = true,
             CALLME_ON           = false,
+            CALLME_NICKNAME     = "",
             CALLME_SOUND        = 568197,
             TOOLTIP_UNIT_ILVL   = true,
             INSPECT_ILVL        = true,
@@ -153,6 +154,23 @@ local function upne_ChatEdit_ParseText(editbox)
             ChatEdit_UpdateHeader(editbox)
         end
     end
+end
+
+local function upne_ChatFilter_CallMe(chatFrame, event,  msg, author, ...) -- (event, msg, author)
+    local name = author and author:match("^([^-]*)-") or ""
+    if name ~= player then
+        local found = false
+        local nicknames = player.." "..Upnemod.db.CALLME_NICKNAME
+
+        for nickname in nicknames:gmatch("([^%s]+)%s*") do
+            if msg:match(nickname) then
+                msg = msg:gsub(nickname, "|cffffffff>|r|cffff0000>|r|cff00ff00"..nickname.."|r|cffff0000<|r|cffffffff<|r")
+                found = true
+            end
+        end
+        if found then PlaySoundFile(Upnemod.db.CALLME_SOUND) end
+    end
+    return false, msg, author, ...
 end
 
 function Upnemod:OnInitialize()
@@ -427,42 +445,35 @@ end
 
 function Upnemod.Set:CALLME_ON(on)
     if on then
-        Upnemod:RegisterEvent("CHAT_MSG_CHANNEL"              , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_GUILD"                , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_INSTANCE_CHAT"        , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER" , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_OFFICER"              , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_PARTY"                , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_PARTY_LEADER"         , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_RAID"                 , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_RAID_LEADER"          , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_RAID_WARNING"         , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_SAY"                  , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_WHISPER"              , "OnCallMe")
-        Upnemod:RegisterEvent("CHAT_MSG_YELL"                 , "OnCallMe")
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL"              , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD"                , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT"        , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER" , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_OFFICER"              , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY"                , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY_LEADER"         , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID"                 , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID_LEADER"          , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_RAID_WARNING"         , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY"                  , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER"              , upne_ChatFilter_CallMe)
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL"                 , upne_ChatFilter_CallMe)
     else
-        Upnemod:UnregisterEvent("CHAT_MSG_CHANNEL"             )
-        Upnemod:UnregisterEvent("CHAT_MSG_GUILD"               )
-        Upnemod:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT"       )
-        Upnemod:UnregisterEvent("CHAT_MSG_INSTANCE_CHAT_LEADER")
-        Upnemod:UnregisterEvent("CHAT_MSG_OFFICER"             )
-        Upnemod:UnregisterEvent("CHAT_MSG_PARTY"               )
-        Upnemod:UnregisterEvent("CHAT_MSG_PARTY_LEADER"        )
-        Upnemod:UnregisterEvent("CHAT_MSG_RAID"                )
-        Upnemod:UnregisterEvent("CHAT_MSG_RAID_LEADER"         )
-        Upnemod:UnregisterEvent("CHAT_MSG_RAID_WARNING"        )
-        Upnemod:UnregisterEvent("CHAT_MSG_SAY"                 )
-        Upnemod:UnregisterEvent("CHAT_MSG_WHISPER"             )
-        Upnemod:UnregisterEvent("CHAT_MSG_YELL"                )
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_CHANNEL"              , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_GUILD"                , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_INSTANCE_CHAT"        , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER" , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_OFFICER"              , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_PARTY"                , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_PARTY_LEADER"         , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_RAID"                 , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_RAID_LEADER"          , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_RAID_WARNING"         , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY"                  , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER"              , upne_ChatFilter_CallMe)
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL"                 , upne_ChatFilter_CallMe)
     end
     return ""
-end
-
-function Upnemod:OnCallMe(event, msg, author)
-    local name = author and author:match("^([^-]*)-") or ""
-    if msg:match(player) and (name ~= player) then
-        PlaySoundFile(self.db.CALLME_SOUND)
-    end
 end
 
 function Upnemod.Set:VEHICLEUI_SCALE(on)
@@ -587,7 +598,7 @@ function Upnemod:BuildOptions()
         type = "group",
         get = function(info) return self.db[info[#info]] end,
         set = function(info, value)
-            local action = info[#info] 
+            local action = info[#info]
             self.db[action] = value
             if self.Set[action] then
                 local message = self.Set[action](_, value)
@@ -662,7 +673,13 @@ function Upnemod:BuildOptions()
                 name = L["CALLME_ON"],
                 type = "toggle",
                 order = 701,
-                width = "full",
+                --width = "full",
+            },
+            CALLME_NICKNAME = {
+                name = L["CALLME_NICKNAME"],
+                type = "input",
+                order = 706,
+                desc = L["CALLME_NICKNAME_HELP"]
             },
             CALLME_SOUND = {
                 name = L["CALLME_SOUND"],
