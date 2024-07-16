@@ -202,7 +202,7 @@ function Upnemod:OnInitialize()
 
     -- Apply options
     for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL",
-     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION"})
+     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION", "LFG_LEAVE_INSTANCE"})
         do self.Set[v](_, self.db[v]) end
 
     -- koKR Only
