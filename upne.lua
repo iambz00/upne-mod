@@ -172,6 +172,158 @@ local function upne_ChatFilter_CallMe(chatFrame, event,  msg, author, ...) -- (e
     end
     return false, msg, author, ...
 end
+--[[
+LOOT_ROLL_STARTED       = "|HlootHistory:%d|h[Loot]|h: %s"
+                          "|HlootHistory:%d|h[전리품]|h: %s"
+LOOT_ROLL_NEED          = "|HlootHistory:%d|h[Loot]|h: %s has selected Need for: %s"
+                          "|HlootHistory:%d|h[전리품]|h: %s 님이 입찰을 선택했습니다: %s"
+LOOT_ROLL_GREED         = "|HlootHistory:%d|h[Loot]|h: %s has selected Greed for: %s"
+                          "|HlootHistory:%d|h[전리품]|h: %s 님이 차비를 선택했습니다: %s"
+LOOT_ROLL_PASSED        = "|HlootHistory:%d|h[Loot]|h: %s passed on: %s"
+                          "|HlootHistory:%d|h[전리품]|h:%s 님이 주사위 굴리기를 포기했습니다: %s"
+LOOT_ROLL_NEED_SELF     = "|HlootHistory:%d|h[Loot]|h: You have selected Need for: %s"
+                          "|HlootHistory:%d|h[전리품]|h: 입찰을 선택했습니다: %s"
+LOOT_ROLL_GREED_SELF    = "|HlootHistory:%d|h[Loot]|h: You have selected Greed for: %s"
+                          "|HlootHistory:%d|h[전리품]|h: 차비를 선택했습니다: %s"
+LOOT_ROLL_PASSED_SELF   = "|HlootHistory:%d|h[Loot]|h: You passed on: %s"
+                          "|HlootHistory:%d|h[전리품]|h: 주사위 굴리기를 포기했습니다: %s"
+LOOT_ROLL_ROLLED_NEED   = "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s"
+                          "|HlootHistory:%1$d|h[전리품]|h: %4$s 님이 입찰 아이템에 주사위를 굴려 %2$d|1이;가; 나왔습니다: %3$s"
+LOOT_ROLL_ROLLED_GREED  = "|HlootHistory:%d|h[Loot]|h: Greed Roll - %d for %s by %s"
+                          "|HlootHistory:%1$d|h[전리품]|h: %4$s 님이 차비 아이템에 주사위를 굴려 %2$d|1이;가; 나왔습니다: %3$s"
+LOOT_ROLL_WON           = "|HlootHistory:%d|h[Loot]|h: %s won: %s"
+                        = "|HlootHistory:%d|h[전리품]|h:%s 님이 아이템을 차지했습니다: %s"
+LOOT_ROLL_YOU_WON       = "|HlootHistory:%d|h[Loot]|h: You won: %s"
+                          "|HlootHistory:%d|h[전리품]|h: 아이템을 차지했습니다: %s"
+]]
+Upnemod.lootPrefix = "|HlootHistory:"
+Upnemod.lootString = {
+    ["LOOT_ROLL_NEED"        ] = LOOT_ROLL_NEED         ,
+    ["LOOT_ROLL_GREED"       ] = LOOT_ROLL_GREED        ,
+    ["LOOT_ROLL_PASSED"      ] = LOOT_ROLL_PASSED       ,
+    ["LOOT_ROLL_NEED_SELF"   ] = LOOT_ROLL_NEED_SELF    ,
+    ["LOOT_ROLL_GREED_SELF"  ] = LOOT_ROLL_GREED_SELF   ,
+    ["LOOT_ROLL_PASSED_SELF" ] = LOOT_ROLL_PASSED_SELF  ,
+    ["LOOT_ROLL_ROLLED_NEED" ] = LOOT_ROLL_ROLLED_NEED  ,
+    ["LOOT_ROLL_ROLLED_GREED"] = LOOT_ROLL_ROLLED_GREED ,
+    ["LOOT_ROLL_WON"         ] = LOOT_ROLL_WON          ,
+    ["LOOT_ROLL_YOU_WON"     ] = LOOT_ROLL_YOU_WON      ,
+}
+--[[ convert str to proper pattern ]]
+for k, v in pairs(Upnemod.lootString) do
+    Upnemod.lootString[k] = v:gsub("%%%d$([ds])", "%%%1"):gsub("%%s", "%%w"):gsub("(%%[wd])", "(%1+)")
+        :gsub("|%d[^;]*;[^;]*;", ".*"):gsub("([%[%]])", "%%%1")
+end
+Upnemod.loothistory = {}
+Upnemod.lootHandler = {
+    ["LOOT_ROLL"             ] = function(chatFrame, arg1, arg2, arg3, rollType)   -- id, who, item
+        Upnemod.loothistory[arg1] = Upnemod.loothistory[arg1] or {}
+        local loothistory = Upnemod.loothistory[arg1]
+        loothistory[rollType] = loothistory[rollType] or {}
+        table.insert(loothistory[rollType], arg2)
+        -- Remember what frame to send
+        loothistory.chatFrame = loothistory.chatFrame or {}
+        loothistory.chatFrame[chatFrame] = 1
+        -- Reset Timer for 2 seconds
+        if loothistory.timer then
+            loothistory.timer:Cancel()
+        end
+        loothistory.timer = C_Timer.NewTimer(2, function()
+            local message = ""
+            if loothistory.T_NEED then
+                message = message.."["..NEED.."] "..arg3.."\n "..table.concat(loothistory.T_NEED, ", ")
+            end
+            if loothistory.T_GREED then
+                message = message.."["..GREED.."] "..arg3.."\n "..table.concat(loothistory.T_GREED, ", ")
+            end
+            if loothistory.T_PASS then
+                message = message.."["..PASS.."] "..arg3.."\n "..table.concat(loothistory.T_PASS, ", ")
+            end
+            loothistory.T_NEED = nil
+            loothistory.T_GREED = nil
+            loothistory.T_PASS = nil
+            for frame, _ in pairs(loothistory.chatFrame) do
+                frame:AddMessage(message)
+            end
+        end)
+    end,
+    ["LOOT_ROLL_NEED"        ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_NEED")
+        return true
+    end,
+    ["LOOT_ROLL_GREED"       ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_GREED")
+        return true
+    end,
+    ["LOOT_ROLL_PASSED"      ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_PASS")
+        return true
+    end,
+    ["LOOT_ROLL_NEED_SELF"   ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_NEED")
+        return false, msg
+    end,
+    ["LOOT_ROLL_GREED_SELF"  ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_GREED")
+        return false, msg
+    end,
+    ["LOOT_ROLL_PASSED_SELF" ] = function(chatFrame, msg, arg1, arg2, arg3)
+        Upnemod.lootHandler.LOOT_ROLL(chatFrame, arg1, arg2, arg3, "T_PASS")
+        return false, msg
+    end,
+    ["LOOT_ROLL_ROLLED"      ] = function(chatFrame, msg, arg1, arg2, arg3, arg4, rollType) -- id, dice, item, who
+        if GetLocale() == "kokr" then   -- id, who, dice, item
+            local temp = arg2
+            arg2 = arg3
+            arg3 = arg4
+            arg4 = temp
+        end
+        Upnemod.loothistory[arg1] = Upnemod.loothistory[arg1] or {}
+        local loothistory = Upnemod.loothistory[arg1]
+        -- Remember what frame to send
+        loothistory.chatFrame = loothistory.chatFrame or {}
+        loothistory.chatFrame[chatFrame] = 1
+        -- NEED / GREED
+        loothistory[rollType] = loothistory[rollType] or {}
+        table.insert(loothistory[rollType], { arg4, arg2 } )
+    end,
+    ["LOOT_ROLL_ROLLED_NEED" ] = function(chatFrame, msg, arg1, arg2, arg3, arg4)   -- id, dice, item, who
+        Upnemod.lootHandler.LOOT_ROLL_ROLLED(chatFrame, msg, arg1, arg2, arg3, arg4, "R_NEED")
+        return true
+    end,
+    ["LOOT_ROLL_ROLLED_GREED"] = function(chatFrame, msg, arg1, arg2, arg3, arg4)
+        Upnemod.lootHandler.LOOT_ROLL_ROLLED(chatFrame, msg, arg1, arg2, arg3, arg4, "R_GREED")
+        return true
+    end,
+    ["LOOT_ROLL_WON"         ] = function(chatFrame, msg, arg1, arg2, arg3      )    -- id, who, item
+        local loothistory = Upnemod.loothistory[arg1]
+        if not loothistory then return false end
+        local rolled = loothistory.R_NEED or loothistory.R_GREED or {}
+        table.sort(rolled, function(a, b) return (a[2] < b[2]) or (a[2] == arg2) or (b[2] ~= arg2) end)
+        msg = msg.."\n = "
+        for _, roll in ipairs(rolled) do
+            msg = msg.."["..roll[1].."]"..roll[2]..", "
+        end
+        loothistory = nil
+        return false, msg
+    end,
+    ["LOOT_ROLL_YOU_WON"     ] = function(chatFrame, msg, arg1, arg2            )    -- id, item
+        return Upnemod.lootHandler.LOOT_ROLL_WON(chatFrame, msg, arg1, player, arg2)
+    end,
+}
+
+local function upne_ChatFilter_LootMsg(chatFrame, event, msg, ...)
+    if msg:sub(Upnemod.lootPrefix, 1, #Upnemod.lootPrefix) == prefix then
+        for evnt, str in pairs(Upnemod.lootString) do
+            local arg1, arg2, arg3, arg4 = msg:match(str)
+            if arg1 then
+                print(arg1, arg2, arg3, arg4)
+--                return Upnemod.lootHandler[evnt](chatFrame, msg, arg1, arg2, arg3, arg4), ...
+            end
+        end
+    end
+    return false, msg, ...
+end
 
 function Upnemod:OnInitialize()
     self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
@@ -218,6 +370,8 @@ function Upnemod:OnInitialize()
     self:SetupToTRaidIcon()
     self:TurnOnCombatText()
 
+    -- For Test
+    ChatFrame_AddMessageEventFilter("LOOT_MSG", upne_ChatFilter_LootMsg)
     -- Apply options
     for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL",
      "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION", "LFG_LEAVE_INSTANCE"})
