@@ -353,9 +353,7 @@ function Upnemod.Set:DELETE_CONFIRM(on)
 end
 
 function Upnemod:DELETE_ITEM_CONFIRM(...)
-    -- DELETE_CONFIRM_STRING is Empty.. why?
-    DELETE_CONFIRM_STRING = DELETE_CONFIRM_STRING or DELETE_GOOD_ITEM:match("\"([^\"]+)\"")
-    StaticPopup1EditBox:SetText(DELETE_CONFIRM_STRING)
+    StaticPopup1EditBox:SetText(DELETE_ITEM_CONFIRM_STRING)
     --StaticPopup1Button1:Enable()
 end
 

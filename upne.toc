@@ -1,6 +1,6 @@
 ## Interface: 40400
 ## Title: upne
-## Version: 1.7.5
+## Version: 1.7.6
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB
