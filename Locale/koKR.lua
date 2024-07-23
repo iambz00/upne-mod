@@ -12,6 +12,10 @@ L["CHANNELS_LIST"] = {
     RAID_WARNING = "RW,경보",
 }
 
+L["Time Left to Close"] = function(seconds)
+    return seconds.."초 후 팝업 닫힘"
+end
+
 L["SAY"]     = "일반"
 L["YELL"]    = "외침"
 L["PARTY"]   = "파티"

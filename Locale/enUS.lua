@@ -12,6 +12,10 @@ L["CHANNELS_LIST"] = {
     RAID_WARNING = "RW",
 }
 
+L["Time Left to Close"] = function(seconds)
+    return "Popup Closes after"..seconds.." seconds..."
+end
+
 L["SAY"]     = true
 L["YELL"]    = true
 L["PARTY"]   = true

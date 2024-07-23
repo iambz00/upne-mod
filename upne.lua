@@ -64,7 +64,6 @@ Upnemod.dbDefault = {
 
 StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
     text = format("%s - %s %s!\n%s", MSG_PREFIX, INSTANCE, COMPLETE, INSTANCE_PARTY_LEAVE),
-    --text = MSG_PREFIX.." - "..COMPLETE.."!\n"..INSTANCE_PARTY_LEAVE, --L["Leave Instance?"],
     button1 = ACCEPT,
     button2 = CANCEL,
     OnAccept = function(self)
@@ -78,7 +77,18 @@ StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
     --enterClicksFirstButton = true,
     hideOnEscape = true,
     --sound = LFG_DungeonReady, -- 17318
-    --OnHide = function(self) self.editBox:SetText("") end,
+    hasEditBox = true,
+    editBoxWidth = 180,
+    OnUpdate = function(self, elapsed)
+        if self.editbox then
+            self.editbox:SetText(L["Time Left to Close"](ceil(self.timeleft)))
+        end
+    end,
+    OnShow = function(self)
+        self.editbox = _G[self:GetName().."EditBox"]
+        self.editbox:SetEnabled(false)
+        self.editbox:ClearFocus()
+    end
 }
 
 local normalize = {
