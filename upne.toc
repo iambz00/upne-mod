@@ -1,6 +1,6 @@
 ## Interface: 40400
 ## Title: upne
-## Version: 1.7.6
+## Version: 1.7.7
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB
@@ -15,8 +15,8 @@ Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDB-3.0\AceDB-3.0.xml
 Libs\AceEvent-3.0\AceEvent-3.0.xml
 Libs\AceLocale-3.0\AceLocale-3.0.xml
-Libs\LibGearScore-1.0\LibGearScore.lua
 #@end-no-lib-strip@
+Libs\LibAverageItemLevel.lua
 
 Locale\enUS.lua
 Locale\koKR.lua

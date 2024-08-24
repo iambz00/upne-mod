@@ -4,7 +4,7 @@ Upnemod.name = addonName
 Upnemod.version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, true)
-local LibGearScore = LibStub:GetLibrary("LibGearScore.1000", true)
+local LibItemLevel = LibStub:GetLibrary("LibAverageItemLevel", true)
 
 local playerGUID
 local MSG_PREFIX = "|cff00ff00■ |cffffaa00"..addonName.."|r "
@@ -120,14 +120,11 @@ local normalize = {
 }
 
 local function upne_OnTooltipSetUnit(tooltip, ...)
-    local _, unitID = tooltip:GetUnit()
-    if unitID then
-        local _, gearScore = LibGearScore:GetScore(unitID)
-        if gearScore then
-            local ilvl = gearScore.AvgItemLevel or 0
-            if tonumber(ilvl) > 0 then
-                tooltip:AddDoubleLine(L["Item Level"], "|cffffffff".. ilvl.."|r")
-            end
+    local _, unit = tooltip:GetUnit()
+    if unit then
+        local ilvl = LibItemLevel:GetItemLevel(unit) or 0
+        if ilvl > 0 then
+            tooltip:AddDoubleLine(L["Item Level"], "|cffffffff".. ilvl.."|r")
         end
     end
 end
@@ -404,37 +401,35 @@ end
 function Upnemod.Set:INSPECT_ILVL(on)
     if on then
         Upnemod:RegisterEvent("INSPECT_READY")
-        LibGearScore.RegisterCallback(Upnemod, "LibGearScore_Update")
+        LibItemLevel:SetCallback(Upnemod, "ItemLevel_Update")
     else
         Upnemod:UnregisterEvent("INSPECT_READY")
-        if Upnemod.inspectGearScore then
-            Upnemod.inspectGearScore:Hide()
+        LibItemLevel:UnsetCallback(Upnemod)
+        if Upnemod.inspectILVL then
+            Upnemod.inspectILVL:Hide()
         end
     end
     return ""
 end
 
-function Upnemod:LibGearScore_Update(event, guid, gearScore)
-    if self.inspectingGUID and guid and self.inspectGearScore and InspectModelFrame then
-        if gearScore then
-            self.inspectGearScore:SetText(gearScore.AvgItemLevel or 0)
-            self.inspectGearScore:Show()
-        end
+function Upnemod.ItemLevel_Update(_, _, guid, itemlevel)
+    if Upnemod.inspectILVL and itemlevel then
+        Upnemod.inspectILVL:SetText(itemlevel or "-")
+        Upnemod.inspectILVL:Show()
     end
 end
 
-function Upnemod:INSPECT_READY(event, ...)
-    if not self.inspectGearScore and InspectModelFrame then
+function Upnemod:INSPECT_READY(_, guid)
+    if not self.inspectILVL and InspectModelFrame then
         local text = InspectModelFrame:CreateFontString()
         text:SetPoint("TOPRIGHT")
         text:SetFontObject("GameFontNormalSmall")
         text:SetJustifyH("RIGHT")
         text:SetJustifyV("TOP")
         text:SetTextColor(1, 1, 1)
-        self.inspectGearScore = text
+        self.inspectILVL = text
     end
-
-    local guid = ...
+    self.inspectILVL:SetText(LibItemLevel:GetItemLevelByGUID(guid) or "-")
     self.inspectingGUID = guid
 end
 
