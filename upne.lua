@@ -429,8 +429,10 @@ function Upnemod:INSPECT_READY(_, guid)
         text:SetTextColor(1, 1, 1)
         self.inspectILVL = text
     end
-    self.inspectILVL:SetText(LibItemLevel:GetItemLevelByGUID(guid) or "-")
-    self.inspectingGUID = guid
+    if self.inspectILVL then
+        self.inspectILVL:SetText(LibItemLevel:GetItemLevelByGUID(guid) or "-")
+    end
+    --self.inspectingGUID = guid
 end
 
 function Upnemod.Set:FIX_COMBATTEXT() return "" end
