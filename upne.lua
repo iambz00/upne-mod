@@ -252,7 +252,7 @@ function Upnemod:OnInitialize()
             local message = self.Set:ANNOUNCE_INTERRUPT(self.db.ANNOUNCE_INTERRUPT)
             p((self.db.ANNOUNCE_INTERRUPT and L["Turn On" ] or L["Turn Off"])..L["ANNOUNCE_INTERRUPT"]..message)
         else
-            InterfaceOptionsFrame_OpenToCategory(self.name)
+            Settings.OpenToCategory(self.name)
         end
     end
     SLASH_CALC1 = "/calc"
