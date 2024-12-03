@@ -91,33 +91,12 @@ StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
     end
 }
 
-local normalize = {
-    announceInterrupt   = "ANNOUNCE_INTERRUPT",
-    announceChannel     = "ANNOUNCE_CHANNEL",
-    tooltip_auraSrc     = "TOOLTIP_AURA_SRC",
-    tooltip_auraId      = "TOOLTIP_AURA_ID",
-    trade_classColor    = "TRADE_CLASS_COLOR",
-    deleteConfirm       = "DELETE_CONFIRM",
-    tot_raidIcon        = "RAIDICON_TOT",
-    fixCombatText       = "FIX_COMBATTEXT",
-    callme              = "CALLME_ON",
-    callmeSound         = "CALLME_SOUND",
-    tooltip_gs          = "TOOLTIP_UNIT_ILVL",
-    inspect_gs          = "INSPECT_ILVL",
-    TOOLTIP_UNIT_GS     = "TOOLTIP_UNIT_ILVL",
-    INSPECT_GS          = "INSPECT_ILVL",
-    vehicleUIScale      = "VEHICLEUI_SCALE",
-    vehicleUISlim       = "VEHICLEUI_HIDEBG",
-    druidManaBar        = "DRUID_MANABAR",
-    fpsShow             = "FPS_SHOW",
-    fpsOption           = "FPS_OPTION",
-    fpsAnchor           = "FPS_Anchor",
-    fpsAnchorFrame      = "FPS_AnchorFrame",
-    fpsAnchorFrameAnchor = "FPS_AnchorFrameAnchor",
-    fpsOffsetX          = "FPS_OffsetX",
-    fpsOffsetY          = "FPS_OffsetY",
-    tooltip_ilvl        = false,
-}
+local function upne_RaidIcon_ToT()
+    if Upnemod.db.RAIDICON_TOT then
+        SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
+        SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
+    end
+end
 
 local function upne_OnTooltipSetUnit(tooltip, ...)
     local _, unit = tooltip:GetUnit()
@@ -130,21 +109,21 @@ local function upne_OnTooltipSetUnit(tooltip, ...)
 end
 
 local function upne_AuraHandler(auraFunc, gt, ...)
-    local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
     local db = Upnemod.db
-    if auraId then
-        local left = db.TOOLTIP_AURA_ID and ("ID: |cffffffff"..auraId.."|r") or " "
-        local right = ""
-        if db.TOOLTIP_AURA_SRC and src then
-            right, _ = UnitName(src)
-            local _, class, _ = UnitClass(src)
-            local classColor = RAID_CLASS_COLORS[class]
-            if classColor then
-                right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+    if db.TOOLTIP_AURA_ID or db.TOOLTIP_AURA_SRC then
+        local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
+        if auraId then
+            local left = db.TOOLTIP_AURA_ID and ("ID: |cffffffff"..auraId.."|r") or " "
+            local right = ""
+            if db.TOOLTIP_AURA_SRC and src then
+                right, _ = UnitName(src)
+                local _, class, _ = UnitClass(src)
+                local classColor = RAID_CLASS_COLORS[class]
+                if classColor then
+                    right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+                end
+                right = "by "..right
             end
-            right = "by "..right
-        end
-        if db.TOOLTIP_AURA_ID or db.TOOLTIP_AURA_SRC then
             gt:AddDoubleLine(left, right)
             gt:Show()
         end
@@ -184,26 +163,6 @@ function Upnemod:OnInitialize()
     self.wholeDb = LibStub("AceDB-3.0"):New("upneDB", self.dbDefault)
     self.db = self.wholeDb.realm[player]
 
-    -- Convert DB
-    local is_old_options = false
-    for _, db in pairs(self.wholeDb.realm) do
-        for k, _ in pairs(normalize) do
-            if db[k] then
-                is_old_options = true
-            end
-        end
-    end
-    if is_old_options then
-        for _, db in pairs(self.wholeDb.realm) do
-            for k, v in pairs(normalize) do
-                if v then
-                    db[v] = db[k]
-                end
-                db[k] = nil
-            end
-        end
-    end
-
     self.wholeDb.global.version = self.version
 
     self:BuildOptions()
@@ -222,7 +181,8 @@ function Upnemod:OnInitialize()
     hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
     hooksecurefunc("ChatEdit_ParseText", upne_ChatEdit_ParseText)
     ---- Raid Target Icon on TargetOfTarget/TargetOfFocus
-    self:SetupToTRaidIcon()
+    self:InitToTRaidIcon()
+    hooksecurefunc("UnitFrame_OnEvent", upne_RaidIcon_ToT)
     self:TurnOnCombatText()
 
     -- Apply options
@@ -364,11 +324,20 @@ function Upnemod:DELETE_ITEM_CONFIRM(...)
     --StaticPopup1Button1:Enable()
 end
 
-function Upnemod:RAIDICON_TOT() return "" end
+function Upnemod.Set:RAIDICON_TOT(on)
+    if on then
+        Upnemod:InitToTRaidIcon()
+        upne_RaidIcon_ToT()
+    else
+        SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, 0)
+        SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, 0)
+    end
+    return ""
+end
+--function Upnemod:SetupToTRaidIcon()
 
-function Upnemod:SetupToTRaidIcon()
-    if self.db.RAIDICON_TOT then
-        local t = TargetFrameToT
+function Upnemod:InitToTRaidIcon()
+    for _, t in pairs({TargetFrameToT, FocusFrameToT}) do
         if not t.raidTargetIcon then
             t.raidTargetIcon = t:CreateTexture()
             local tx = t.raidTargetIcon
@@ -378,23 +347,8 @@ function Upnemod:SetupToTRaidIcon()
             tx:SetHeight(16)
             tx:SetDrawLayer("Artwork",0)
             tx:Show()
+            SetRaidTargetIconTexture(tx, 0)
         end
-
-        t = FocusFrameToT
-        if not t.raidTargetIcon then
-            t.raidTargetIcon = t:CreateTexture()
-            local tx = t.raidTargetIcon
-            tx:SetPoint("LEFT", t, "LEFT", 8, 0)
-            tx:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
-            tx:SetWidth(16)
-            tx:SetHeight(16)
-            tx:SetDrawLayer("Artwork",0)
-            tx:Show()
-        end
-        hooksecurefunc("UnitFrame_OnEvent", function()
-            SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
-            SetRaidTargetIconTexture(FocusFrameToT.raidTargetIcon, GetRaidTargetIndex("focustarget") or 0)
-        end)
     end
 end
 
@@ -435,7 +389,7 @@ function Upnemod:INSPECT_READY(_, guid)
     --self.inspectingGUID = guid
 end
 
-function Upnemod.Set:FIX_COMBATTEXT() return "" end
+function Upnemod.Set:FIX_COMBATTEXT() Upnemod:TurnOnCombatText() return "" end
 
 function Upnemod:TurnOnCombatText()
     if self.db.FIX_COMBATTEXT then
@@ -481,8 +435,8 @@ function Upnemod.Set:CALLME_ON(on)
     return ""
 end
 
-function Upnemod.Set:VEHICLEUI_SCALE(on)
-    OverrideActionBar:SetScale(Upnemod.db.VEHICLEUI_SCALE or 1.0)
+function Upnemod.Set:VEHICLEUI_SCALE(value)
+    OverrideActionBar:SetScale(value or 0.6)
 end
 
 function Upnemod.Set:VEHICLEUI_HIDEBG(on)
