@@ -8,13 +8,8 @@ L["CHANNELS_LIST"] = {
     YELL    = "Y,외침,외치기,SHOUT,ㅛ,YELL,SH,SHOUT",
     PARTY   = "P,PARTY,ㅔ,파티,ㅍ",
     RAID    = "공,RAID,RA,공격대,공대,RSAY",
-    INSTANCE_CHAT = "I,인스턴스,ㅑ",
     RAID_WARNING = "RW,경보",
 }
-
-L["Time Left to Close"] = function(seconds)
-    return seconds.."초 후 팝업 닫힘"
-end
 
 L["SAY"]     = "일반"
 L["YELL"]    = "외침"
@@ -47,6 +42,7 @@ L["ANNOUNCE_INTERRUPT"] = "차단 알림"
 L["ANNOUNCE_CHANNEL"]   = "차단 알림 채널"
 L["Interrupt"]          = "차단"
 L["No Target"]          = "대상 없음"
+L["TOOLTIP_ILVL"]       = "툴팁에 [아이템 레벨/ID] 표시"
 L["TOOLTIP_AURA_SRC"]   = "버프/디버프 툴팁에 [시전자 이름] 표시"
 L["TOOLTIP_AURA_ID"]    = "버프/디버프 툴팁에 [주문 ID] 표시"
 L["TRADE_CLASS_COLOR"]  = "거래창에서 상대방 직업색상 보이기"
@@ -64,10 +60,6 @@ L["TOOLTIP_UNIT_ILVL"]  = "대상 툴팁에 [평균템레벨] 표시(살펴보�
 L["INSPECT_ILVL"]       = "살펴보기 [평균템레벨] 표시"
 L["VEHICLEUI_SCALE"]    = "탈것 UI 크기 조정"
 L["VEHICLEUI_HIDEBG"]   = "탈것 UI 배경 제거"
-L["DRUID_MANABAR"]      = "드루이드 마나바 향상"
-L["DRUID_MANABAR_HELP"] = "숫자 항상 표시, 폰트 크기 조정, 플레이어 프레임과 크기 맞춤, 테두리 제거. 되돌리려면 리로드가 필요합니다."
-L["LFG_LEAVE_INSTANCE"] = "인스턴스 종료 시 나가기 팝업 표시"
-L["LFG_LEAVE_WAIT"]     = "팝업 지속 시간"
 L["FPS_SHOW"]           = "FPS 표시"
 L["FPS_OPTION"]         = "FPS 표시 위치조절"
 L["FPS: Anchor Point"]  = "기준점"
@@ -76,9 +68,6 @@ L["FPS: Anchor Frame's Anchor Point"] = "기준 프레임의 기준점"
 L["FPS: X Offset"]      = "좌우 이동"
 L["FPS: Y Offset"]      = "상하 이동"
 L["Need reload to apply"] = "적용을 위해 리로드가 필요합니다."
-
--- koKR only
-L["INSTANCE_CHAT_KR"] = "/ㅑ 를 인스턴스 채팅으로 사용"
 
 L["TOPLEFT"]    = "좌상"
 L["TOP"]        = "상"

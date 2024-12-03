@@ -8,13 +8,8 @@ L["CHANNELS_LIST"] = {
     YELL    = "Y,YELL,SH,SHOUT",
     PARTY   = "P,PARTY",
     RAID    = "RA,RAID,RSAY",
-    INSTANCE_CHAT = "I,INSTANCE",
     RAID_WARNING = "RW",
 }
-
-L["Time Left to Close"] = function(seconds)
-    return "Popup Closes after"..seconds.." seconds..."
-end
 
 L["SAY"]     = true
 L["YELL"]    = true
@@ -42,11 +37,12 @@ L["Calculation Error"] = true
 L["Turn On"] = "(|cffffffffTurn On |r) "
 L["Turn Off"] = "(|cff999999Turn Off|r) "
 
-L["Item Level"]         = "Item Level"
+L["Item Level"]         = true
 L["ANNOUNCE_INTERRUPT"] = "Announce Interruption"
 L["ANNOUNCE_CHANNEL"]   = "Announce Interruption: Channel"
 L["Interrupt"]          = true
 L["No Target"]          = true
+L["TOOLTIP_ILVL"]       = true
 L["TOOLTIP_AURA_SRC"]   = "Show [Spell ID] on Aura Tooltip"
 L["TOOLTIP_AURA_ID"]    = "Show [Caster Name] on Aura Tooltip"
 L["TRADE_CLASS_COLOR"]  = "Show Target Class Color on Trade Window"
@@ -64,10 +60,6 @@ L["TOOLTIP_UNIT_ILVL"]  = "Show ILvl on Target Tooltip(After Inpection)"
 L["INSPECT_ILVL"]       = "Show ILvl on Inspection"
 L["VEHICLEUI_SCALE"]    = "Vehicle UI Scale"
 L["VEHICLEUI_HIDEBG"]   = "Vehicle UI Hide BG"
-L["DRUID_MANABAR"]      = "Enhance Druid ManaBar"
-L["DRUID_MANABAR_HELP"] = "Always Show Numbers, Adjust Font/Frame Size, Remove Border. Undoing Needs Reload."
-L["LFG_LEAVE_INSTANCE"] = "Show Instance Leaving Popup on finish"
-L["LFG_LEAVE_WAIT"]     = "Popup Remains(sec)"
 L["FPS_SHOW"]           = "FPS: Show FPS"
 L["FPS_OPTION"]         = "FPS: Move Frame"
 L["FPS: Anchor Point"]  = true
@@ -76,9 +68,6 @@ L["FPS: Anchor Frame's Anchor Point"] = true
 L["FPS: X Offset"]      = true
 L["FPS: Y Offset"]      = true
 L["Need reload to apply"] = true
-
--- koKR only
---L["INSTANCE_CHAT_KR"] = true
 
 L["TOPLEFT"]    = true
 L["TOP"]        = true

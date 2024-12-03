@@ -24,7 +24,6 @@ Upnemod.channelListOption = {
     YELL    = L["YELL"],
     PARTY   = L["PARTY"],
     RAID    = L["RAID"],
-    INSTANCE_CHAT = L["INSTANCE"],
     RAID_WARNING = L["RAID_WARNING"]
 }
 
@@ -39,6 +38,7 @@ Upnemod.dbDefault = {
         [player] = {
             ANNOUNCE_INTERRUPT  = true,
             ANNOUNCE_CHANNEL    = "SAY",
+            TOOLTIP_ILVL        = true,
             TOOLTIP_AURA_SRC    = true,
             TOOLTIP_AURA_ID     = true,
             TRADE_CLASS_COLOR   = true,
@@ -48,47 +48,12 @@ Upnemod.dbDefault = {
             CALLME_ON           = false,
             CALLME_NICKNAME     = "",
             CALLME_SOUND        = 568197,
-            TOOLTIP_UNIT_ILVL   = true,
             INSPECT_ILVL        = true,
-            VEHICLEUI_SCALE     = 0.6,
-            VEHICLEUI_HIDEBG    = true,
-            DRUID_MANABAR       = false,
-            LFG_LEAVE_INSTANCE  = true,
-            LFG_LEAVE_WAIT      = 90,
-            INSTANCE_CHAT_KR    = true,
+            TOOLTIP_UNIT_ILVL   = true,
             FPS_SHOW            = false,
             FPS_OPTION          = false,
         }
     }
-}
-
-StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"] = {
-    text = format("%s - %s %s!\n%s", MSG_PREFIX, INSTANCE, COMPLETE, INSTANCE_PARTY_LEAVE),
-    button1 = ACCEPT,
-    button2 = CANCEL,
-    OnAccept = function(self)
-        if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-            --C_PartyInfo.LeaveParty(LE_PARTY_CATEGORY_INSTANCE)
-            LeaveInstanceParty()
-        end
-    end,
-    timeout = 90,
-    showAlert = true,
-    --enterClicksFirstButton = true,
-    hideOnEscape = true,
-    --sound = LFG_DungeonReady, -- 17318
-    hasEditBox = true,
-    editBoxWidth = 180,
-    OnUpdate = function(self, elapsed)
-        if self.editbox then
-            self.editbox:SetText(L["Time Left to Close"](ceil(self.timeleft)))
-        end
-    end,
-    OnShow = function(self)
-        self.editbox = _G[self:GetName().."EditBox"]
-        self.editbox:SetEnabled(false)
-        self.editbox:ClearFocus()
-    end
 }
 
 local function upne_RaidIcon_ToT()
@@ -108,36 +73,40 @@ local function upne_OnTooltipSetUnit(tooltip, ...)
     end
 end
 
-local function upne_AuraHandler(auraFunc, gt, ...)
-    local db = Upnemod.db
-    if db.TOOLTIP_AURA_ID or db.TOOLTIP_AURA_SRC then
-        local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
-        if auraId then
-            local left = db.TOOLTIP_AURA_ID and ("ID: |cffffffff"..auraId.."|r") or " "
-            local right = ""
-            if db.TOOLTIP_AURA_SRC and src then
-                right, _ = UnitName(src)
-                local _, class, _ = UnitClass(src)
-                local classColor = RAID_CLASS_COLORS[class]
-                if classColor then
-                    right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
-                end
-                right = "by "..right
+local function GameTooltip_Ilvl(narrow, tooltip, ...)
+    local _, itemLink = tooltip:GetItem()
+    if itemLink then
+        local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+        local itemID, _ = GetItemInfoInstant(itemLink)
+        if itemType == GetItemClassInfo(Enum.ItemClass.Weapon) or itemType == GetItemClassInfo(Enum.ItemClass.Armor) then
+            if narrow then
+                tooltip:AddLine(L["Item Level"].." |cffffffff" .. itemLevel .. "|r")
+                tooltip:AddLine("ID |cffffffff" .. itemID .. "|r")
+            else
+                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", L["Item Level"], itemLevel), "(ID:  |cffffffff"..itemID.."|r)")
             end
-            gt:AddDoubleLine(left, right)
-            gt:Show()
         end
     end
 end
 
-local function upne_ChatEdit_ParseText(editbox)
-    if SLASH_INSTANCE_CHAT_UPNE then
-        local text = editbox:GetText()
-        if text:match("^(/.-)%s") == SLASH_INSTANCE_CHAT_UPNE then
-            editbox:SetAttribute("chatType", "INSTANCE_CHAT")
-            editbox:SetAttribute("stickyType", "INSTANCE_CHAT")
-            editbox:SetText(text:match("^/[^%s]+%s(.*)$") or "")
-            ChatEdit_UpdateHeader(editbox)
+local function upne_AuraHandler(auraFunc, gt, ...)
+    local _, _, _, _, _, _, src, _, _, auraId = auraFunc(...)	-- UnitAura or UnitBuff or UnitDebuff
+    local db = Upnemod.db
+    if auraId then
+        local left = db.TOOLTIP_AURA_ID and ("ID: |cffffffff"..auraId.."|r") or " "
+        local right = ""
+        if db.TOOLTIP_AURA_SRC and src then
+            right, _ = UnitName(src)
+            local _, class, _ = UnitClass(src)
+            local classColor = RAID_CLASS_COLORS[class]
+            if classColor then
+                right = string.format("|cff%.2x%.2x%.2x%s|r", classColor.r*255, classColor.g*255, classColor.b*255, right)
+            end
+            right = "by "..right
+        end
+        if db.TOOLTIP_AURA_ID or db.TOOLTIP_AURA_SRC then
+            gt:AddDoubleLine(left, right)
+            gt:Show()
         end
     end
 end
@@ -147,7 +116,6 @@ local function upne_ChatFilter_CallMe(chatFrame, event,  msg, author, ...) -- (e
     if name ~= player then
         local found = false
         local nicknames = player.." "..Upnemod.db.CALLME_NICKNAME
-
         for nickname in nicknames:gmatch("([^%s]+)%s*") do
             if msg:match(nickname) then
                 msg = msg:gsub(nickname, "|cffffffff>|r|cffff0000>|r|cff00ff00"..nickname.."|r|cffff0000<|r|cffffffff<|r")
@@ -173,27 +141,19 @@ function Upnemod:OnInitialize()
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
     -- Hooks and Setups
-    ---- GearScore on Tooltip
+    ---- Unit Ilvl on Tooltip
     GameTooltip:HookScript("OnTooltipSetUnit", upne_OnTooltipSetUnit)
     ---- Spell Caster/ID on Aura/Buff/Debuff Tooltip
     hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitDebuff", function(...) upne_AuraHandler(UnitDebuff, ...) end)
-    hooksecurefunc("ChatEdit_ParseText", upne_ChatEdit_ParseText)
-    ---- Raid Target Icon on TargetOfTarget/TargetOfFocus
-    self:InitToTRaidIcon()
-    hooksecurefunc("UnitFrame_OnEvent", upne_RaidIcon_ToT)
+    ---- Raid Target Icon on TargetOfTarget
+    self:SetupToTRaidIcon()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL",
-     "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION", "LFG_LEAVE_INSTANCE"})
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "FPS_SHOW", "FPS_OPTION"})
         do self.Set[v](_, self.db[v]) end
-
-    -- koKR Only
-    if GetLocale() == "koKR" then
-        self.Set["INSTANCE_CHAT_KR"](_, self.db["INSTANCE_CHAT_KR"])
-    end
 
     -- Slash Commands
     SLASH_UPNE1 = "/upne"
@@ -282,18 +242,28 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
         if (not IsInGroup()) then
             p(L["Interrupt"].." - "..rt..destName.." "..spellLink)
         else
-            local channel = self.db.ANNOUNCE_CHANNEL
-            if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-                if channel == "PARTY" or channel == "RAID" or channel == "RAID_WARNING" then
-                    channel = "INSTANCE_CHAT"
-                end
-            end
-            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, channel)
+            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
         end
     end
 end
 
 function Upnemod.Set:TOOLTIP_UNIT_ILVL() return "" end
+
+function Upnemod.Set:TOOLTIP_ILVL(on)
+    if on then
+        Upnemod:SetTooltipHandler(GameTooltip,      "OnTooltipSetItem", function(...) GameTooltip_Ilvl(false, ...) end)
+        Upnemod:SetTooltipHandler(ItemRefTooltip,   "OnTooltipSetItem", function(...) GameTooltip_Ilvl(false, ...) end)
+        Upnemod:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", function(...) GameTooltip_Ilvl(true, ...) end)
+        Upnemod:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", function(...) GameTooltip_Ilvl(true, ...) end)
+    else
+        Upnemod:SetTooltipHandler(GameTooltip,      "OnTooltipSetItem", nil)
+        Upnemod:SetTooltipHandler(ItemRefTooltip,   "OnTooltipSetItem", nil)
+        Upnemod:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
+        Upnemod:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
+    end
+    return ""
+end
+
 function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
 function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
 
@@ -334,10 +304,10 @@ function Upnemod.Set:RAIDICON_TOT(on)
     end
     return ""
 end
---function Upnemod:SetupToTRaidIcon()
 
-function Upnemod:InitToTRaidIcon()
-    for _, t in pairs({TargetFrameToT, FocusFrameToT}) do
+function Upnemod:SetupToTRaidIcon()
+    if self.db.RAIDICON_TOT then
+        local t = TargetFrameToT
         if not t.raidTargetIcon then
             t.raidTargetIcon = t:CreateTexture()
             local tx = t.raidTargetIcon
@@ -349,6 +319,10 @@ function Upnemod:InitToTRaidIcon()
             tx:Show()
             SetRaidTargetIconTexture(tx, 0)
         end
+
+        hooksecurefunc("UnitFrame_OnEvent", function()
+            SetRaidTargetIconTexture(TargetFrameToT.raidTargetIcon, GetRaidTargetIndex("targettarget") or 0)
+        end)
     end
 end
 
@@ -389,7 +363,7 @@ function Upnemod:INSPECT_READY(_, guid)
     --self.inspectingGUID = guid
 end
 
-function Upnemod.Set:FIX_COMBATTEXT() Upnemod:TurnOnCombatText() return "" end
+function Upnemod.Set:FIX_COMBATTEXT() return "" end
 
 function Upnemod:TurnOnCombatText()
     if self.db.FIX_COMBATTEXT then
@@ -406,8 +380,6 @@ function Upnemod.Set:CALLME_ON(on)
     if on then
         ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL"              , upne_ChatFilter_CallMe)
         ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD"                , upne_ChatFilter_CallMe)
-        ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT"        , upne_ChatFilter_CallMe)
-        ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER" , upne_ChatFilter_CallMe)
         ChatFrame_AddMessageEventFilter("CHAT_MSG_OFFICER"              , upne_ChatFilter_CallMe)
         ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY"                , upne_ChatFilter_CallMe)
         ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY_LEADER"         , upne_ChatFilter_CallMe)
@@ -420,8 +392,6 @@ function Upnemod.Set:CALLME_ON(on)
     else
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_CHANNEL"              , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_GUILD"                , upne_ChatFilter_CallMe)
-        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_INSTANCE_CHAT"        , upne_ChatFilter_CallMe)
-        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_INSTANCE_CHAT_LEADER" , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_OFFICER"              , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_PARTY"                , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_PARTY_LEADER"         , upne_ChatFilter_CallMe)
@@ -431,73 +401,6 @@ function Upnemod.Set:CALLME_ON(on)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SAY"                  , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_WHISPER"              , upne_ChatFilter_CallMe)
         ChatFrame_RemoveMessageEventFilter("CHAT_MSG_YELL"                 , upne_ChatFilter_CallMe)
-    end
-    return ""
-end
-
-function Upnemod.Set:VEHICLEUI_SCALE(value)
-    OverrideActionBar:SetScale(value or 0.6)
-end
-
-function Upnemod.Set:VEHICLEUI_HIDEBG(on)
-    if on then
-        OverrideActionBar.Divider1:Hide()
-        OverrideActionBar.Divider2:Hide()
-        OverrideActionBar.Divider3:Hide()
-        OverrideActionBarEndCapL:Hide()
-        OverrideActionBarEndCapR:Hide()
-        OverrideActionBarBorder:Hide()
-        OverrideActionBarBG:Hide()
-    else
-        OverrideActionBar.Divider1:Show()
-        OverrideActionBar.Divider2:Show()
-        OverrideActionBar.Divider3:Show()
-        OverrideActionBarEndCapL:Show()
-        OverrideActionBarEndCapR:Show()
-        OverrideActionBarBorder:Show()
-        OverrideActionBarBG:Show()
-    end
-end
-
-function Upnemod.Set:DRUID_MANABAR(on)
-    if on then
-        PlayerFrameAlternateManaBar:ClearAllPoints()
-        PlayerFrameAlternateManaBar:SetPoint("TOPLEFT", PlayerFrameManaBar, "BOTTOMLEFT", 0, -2)
-        PlayerFrameAlternateManaBar:SetPoint("TOPRIGHT", PlayerFrameManaBar, "BOTTOMRIGHT", 0, -2)
-        ShowTextStatusBarText(PlayerFrameAlternateManaBar)
-        PlayerFrameAlternateManaBarText:SetScale(0.7)
-        PlayerFrameAlternateManaBarBorder:Hide()
-        return ""
-    else
-        return L["Need reload to apply"]
-    end
-
-end
-
-function Upnemod.Set:LFG_LEAVE_INSTANCE(on)
-    if on then
-        Upnemod:RegisterEvent("LFG_COMPLETION_REWARD")
-    else
-        Upnemod:UnregisterEvent("LFG_COMPLETION_REWARD")
-    end
-    return ""
-end
-
-function Upnemod:LFG_COMPLETION_REWARD()
-    local db = self.db
-    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-        StaticPopupDialogs["UPNE_LFG_LEAVE_INSTANCE"].timeout = db.LFG_LEAVE_WAIT or 90
-        StaticPopup_Show("UPNE_LFG_LEAVE_INSTANCE")
-    end
-end
-
-function Upnemod.Set:INSTANCE_CHAT_KR(on)
-    if GetLocale() == "koKR" then
-        if on then
-            SLASH_INSTANCE_CHAT_UPNE = "/ㅑ"
-        else
-            SLASH_INSTANCE_CHAT_UPNE = nil
-        end
     end
     return ""
 end
@@ -590,6 +493,12 @@ function Upnemod:BuildOptions()
                 order = 152,
                 width = "full",
             },
+            TOOLTIP_ILVL = {
+                name = L["TOOLTIP_ILVL"],
+                type = "toggle",
+                order = 201,
+                width = "full",
+            },
             TOOLTIP_AURA_SRC = {
                 name = L["TOOLTIP_AURA_SRC"],
                 type = "toggle",
@@ -627,7 +536,6 @@ function Upnemod:BuildOptions()
                 width = "full",
                 desc = L["FIX_COMBATTEXT_HELP"],
             },
-            -- INSTANCE_CHAT_KR = {},
             CALLME_ON = {
                 name = L["CALLME_ON"],
                 type = "toggle",
@@ -650,44 +558,6 @@ function Upnemod:BuildOptions()
                 type = "execute",
                 order = 721,
                 func = function() PlaySoundFile(self.db.CALLME_SOUND) end
-            },
-            VEHICLEUI_SCALE = {
-                name = L["VEHICLEUI_SCALE"],
-                type = "range",
-                order = 801,
-                width = "full",
-                min = 0.2,
-                max = 1.2,
-                step = 0.01,
-                isPercent = true,
-            },
-            VEHICLEUI_HIDEBG = {
-                name = L["VEHICLEUI_HIDEBG"],
-                type = "toggle",
-                order = 802,
-                width = "full",
-            },
-            DRUID_MANABAR = {
-                name = L["DRUID_MANABAR"],
-                type = "toggle",
-                descStyle = "inline",
-                desc = L["DRUID_MANABAR_HELP"],
-                order = 901,
-                width = "full",
-            },
-            LFG_LEAVE_INSTANCE = {
-                name = L["LFG_LEAVE_INSTANCE"],
-                type = "toggle",
-                descStyle = "inline",
-                order = 911,
-                width = "full",
-            },
-            LFG_LEAVE_WAIT = {
-                name = L["LFG_LEAVE_WAIT"],
-                type = "range",
-                min = 30, max = 300,
-                step = 1,
-                order = 912,
             },
             FPS_SHOW = {
                 name = L["FPS_SHOW"],
@@ -736,12 +606,4 @@ function Upnemod:BuildOptions()
             },
         }
     }
-    if GetLocale() == "koKR" then
-        self.optionsTable.args.INSTANCE_CHAT_KR = {
-            name = L["INSTANCE_CHAT_KR"],
-            type = "toggle",
-            order = 651,
-            width = "full",
-        }
-    end
 end
