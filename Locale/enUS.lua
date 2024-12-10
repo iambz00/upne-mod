@@ -38,8 +38,7 @@ L["Turn On"] = "(|cffffffffTurn On |r) "
 L["Turn Off"] = "(|cff999999Turn Off|r) "
 
 L["Item Level"]         = true
-L["ANNOUNCE_INTERRUPT"] = "Announce Interruption"
-L["ANNOUNCE_CHANNEL"]   = "Announce Interruption: Channel"
+L["ANNOUNCE_INTERRUPT"] = "Print Who Interrupted"
 L["Interrupt"]          = true
 L["No Target"]          = true
 L["TOOLTIP_ILVL"]       = true

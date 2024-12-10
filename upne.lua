@@ -64,26 +64,30 @@ local function upne_RaidIcon_ToT()
 end
 
 local function upne_OnTooltipSetUnit(tooltip, ...)
-    local _, unit = tooltip:GetUnit()
-    if unit then
-        local ilvl = LibItemLevel:GetItemLevel(unit) or 0
-        if ilvl > 0 then
-            tooltip:AddDoubleLine(L["Item Level"], "|cffffffff".. ilvl.."|r")
+    if Upnemod.db.TOOLTIP_UNIT_ILVL then
+        local _, unit = tooltip:GetUnit()
+        if unit then
+            local ilvl = LibItemLevel:GetItemLevel(unit) or 0
+            if ilvl > 0 then
+                tooltip:AddDoubleLine(L["Item Level"], "|cffffffff".. ilvl.."|r")
+            end
         end
     end
 end
 
-local function GameTooltip_Ilvl(narrow, tooltip, ...)
-    local _, itemLink = tooltip:GetItem()
-    if itemLink then
-        local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
-        local itemID, _ = GetItemInfoInstant(itemLink)
-        if itemType == GetItemClassInfo(Enum.ItemClass.Weapon) or itemType == GetItemClassInfo(Enum.ItemClass.Armor) then
-            if narrow then
-                tooltip:AddLine(L["Item Level"].." |cffffffff" .. itemLevel .. "|r")
-                tooltip:AddLine("ID |cffffffff" .. itemID .. "|r")
-            else
-                tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", L["Item Level"], itemLevel), "(ID:  |cffffffff"..itemID.."|r)")
+local function upne_OnTooltipSetItem(narrow, tooltip, ...)
+    if Upnemod.db.TOOLTIP_ILVL then
+        local _, itemLink = tooltip:GetItem()
+        if itemLink then
+            local _, _, _, itemLevel, _, itemType = GetItemInfo(itemLink)
+            local itemID, _ = GetItemInfoInstant(itemLink)
+            if itemType == GetItemClassInfo(Enum.ItemClass.Weapon) or itemType == GetItemClassInfo(Enum.ItemClass.Armor) then
+                if narrow then
+                    tooltip:AddLine(L["Item Level"].." |cffffffff" .. itemLevel .. "|r")
+                    tooltip:AddLine("ID |cffffffff" .. itemID .. "|r")
+                else
+                    tooltip:AddDoubleLine(string.format("%s  |cffffffff%d|r", L["Item Level"], itemLevel), "(ID:  |cffffffff"..itemID.."|r)")
+                end
             end
         end
     end
@@ -141,8 +145,12 @@ function Upnemod:OnInitialize()
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
     -- Hooks and Setups
-    ---- Unit Ilvl on Tooltip
+    ---- Tooltips
     GameTooltip:HookScript("OnTooltipSetUnit", upne_OnTooltipSetUnit)
+    GameTooltip:HookScript("OnTooltipSetItem", function(...) upne_OnTooltipSetItem(false, ...) end)
+    ItemRefTooltip:HookScript("OnTooltipSetItem", function(...) upne_OnTooltipSetItem(false, ...) end)
+    ShoppingTooltip1:HookScript("OnTooltipSetItem", function(...) upne_OnTooltipSetItem(true, ...) end)
+    ShoppingTooltip2:HookScript("OnTooltipSetItem", function(...) upne_OnTooltipSetItem(true, ...) end)
     ---- Spell Caster/ID on Aura/Buff/Debuff Tooltip
     hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
     hooksecurefunc(GameTooltip, "SetUnitBuff", function(...) upne_AuraHandler(UnitBuff, ...) end)
@@ -204,21 +212,19 @@ end
 function Upnemod.Set:ANNOUNCE_INTERRUPT(on)
     if on then
         Upnemod:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        return " - "..Upnemod.channelListOption[Upnemod.db.ANNOUNCE_CHANNEL]
     else
         Upnemod:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-        return ""
     end
+    return ""
 end
-
-function Upnemod.Set:ANNOUNCE_CHANNEL() return "" end
 
 function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
     --local _, combatEvent, _, sourceGUID, sourceName, _, _, destGUID, destName, _, destRaidFlags, 
     --    spellId, spellName, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
-    local _, combatEvent, _, sourceGUID, _, _, _, _, destName, _, destRaidFlags, 
+    local _, combatEvent, _, _, sourceName, _, _, _, destName, _, destRaidFlags, 
         _, _, _, extraSpellId, extraSpellName = CombatLogGetCurrentEventInfo()
-    if combatEvent == "SPELL_INTERRUPT" and sourceGUID == playerGUID then
+    if combatEvent == "SPELL_INTERRUPT" then
+        if not sourceName then sourceName = L["No Target"] end
         if not destName then destName = L["No Target"] end
 
         -- Resolving RaidTarget
@@ -239,30 +245,13 @@ function Upnemod:COMBAT_LOG_EVENT_UNFILTERED(...)
         -- RaidTarget end
         local spellLink = extraSpellId and GetSpellLink(extraSpellId) or "["..extraSpellName.."]"
 
-        if (not IsInGroup()) then
-            p(L["Interrupt"].." - "..rt..destName.." "..spellLink)
-        else
-            SendChatMessage(L["Interrupt"].." - "..rt..destName.." "..spellLink, self.db.ANNOUNCE_CHANNEL)
-        end
+        p(L["Interrupt"]..": ["..sourceName.."] -> "..rt..destName.." "..spellLink)
     end
 end
 
 function Upnemod.Set:TOOLTIP_UNIT_ILVL() return "" end
 
-function Upnemod.Set:TOOLTIP_ILVL(on)
-    if on then
-        Upnemod:SetTooltipHandler(GameTooltip,      "OnTooltipSetItem", function(...) GameTooltip_Ilvl(false, ...) end)
-        Upnemod:SetTooltipHandler(ItemRefTooltip,   "OnTooltipSetItem", function(...) GameTooltip_Ilvl(false, ...) end)
-        Upnemod:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", function(...) GameTooltip_Ilvl(true, ...) end)
-        Upnemod:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", function(...) GameTooltip_Ilvl(true, ...) end)
-    else
-        Upnemod:SetTooltipHandler(GameTooltip,      "OnTooltipSetItem", nil)
-        Upnemod:SetTooltipHandler(ItemRefTooltip,   "OnTooltipSetItem", nil)
-        Upnemod:SetTooltipHandler(ShoppingTooltip1, "OnTooltipSetItem", nil)
-        Upnemod:SetTooltipHandler(ShoppingTooltip2, "OnTooltipSetItem", nil)
-    end
-    return ""
-end
+function Upnemod.Set:TOOLTIP_ILVL() return "" end
 
 function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
 function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
@@ -474,12 +463,6 @@ function Upnemod:BuildOptions()
                 name = L["ANNOUNCE_INTERRUPT"],
                 type = "toggle",
                 order = 101,
-            },
-            ANNOUNCE_CHANNEL = {
-                name = L["ANNOUNCE_CHANNEL"],
-                type = "select",
-                values = self.channelListOption,
-                order = 102,
             },
             INSPECT_ILVL = {
                 name = L["INSPECT_ILVL"],
