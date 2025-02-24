@@ -1,10 +1,10 @@
-## Interface: 11505
+## Interface: 11506
 ## Title: upne
-## Version: 1.15.2e
+## Version: 1.15.6.1
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB
-## OptionalDeps: Ace3, LibGearScore
+## OptionalDeps: Ace3
 ## DefaultState: enabled
 
 #@no-lib-strip@

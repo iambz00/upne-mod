@@ -50,6 +50,7 @@ L["RAIDICON_TOT"]       = "[대상의 대상]/[주시대상의 대상] 공격대
 L["FIX_COMBATTEXT"]     = "로그인 시 전투 메시지 켜기"
 L["Combat Message Enabled"] = "전투 메시지가 꺼져 있어서 켰습니다."
 L["FIX_COMBATTEXT_HELP"] = "기본 UI나 애드온 오류로 꺼진 상황에 대비합니다."
+L["SHAMAN_CLASSCOLOR"]  = "주술사 직업색상을 파랗게 변경"
 L["CALLME_ON"]          = "내 이름 불렸을 때 알람(콜미)"
 L["CALLME_NICKNAME"]    = "내 별명 입력"
 L["CALLME_NICKNAME_HELP"]="여러 별명을 빈 칸으로 띄워서 입력"

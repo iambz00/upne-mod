@@ -160,7 +160,8 @@ function Upnemod:OnInitialize()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "FPS_SHOW", "FPS_OPTION"})
+    for _, v in pairs({ "ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "SHAMAN_CLASSCOLOR",
+                        "CALLME_ON", "INSPECT_ILVL", "FPS_SHOW", "FPS_OPTION"})
         do self.Set[v](_, self.db[v]) end
 
     -- Slash Commands
@@ -365,6 +366,26 @@ function Upnemod:TurnOnCombatText()
     end
 end
 
+function Upnemod.Set:SHAMAN_CLASSCOLOR(on)
+    local sc = RAID_CLASS_COLORS.SHAMAN
+    if not sc.OLD then
+        sc.OLD = {}
+        sc.OLD.r = sc.r     -- 0.96
+        sc.OLD.g = sc.g     -- 0.55
+        sc.OLD.b = sc.b     -- 0.73
+    end
+    if on then
+        sc.r = 0
+        sc.g = 0.44
+        sc.b = 0.87
+    else
+        sc.r = sc.OLD.r
+        sc.g = sc.OLD.g
+        sc.b = sc.OLD.b
+    end
+    return ""
+end
+
 function Upnemod.Set:CALLME_ON(on)
     if on then
         ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL"              , upne_ChatFilter_CallMe)
@@ -518,6 +539,12 @@ function Upnemod:BuildOptions()
                 order = 601,
                 width = "full",
                 desc = L["FIX_COMBATTEXT_HELP"],
+            },
+            SHAMAN_CLASSCOLOR = {
+                name = L["SHAMAN_CLASSCOLOR"],
+                type = "toggle",
+                order = 651,
+                width = "full",
             },
             CALLME_ON = {
                 name = L["CALLME_ON"],

@@ -50,6 +50,7 @@ L["RAIDICON_TOT"]       = "Show Raid Icon on ToT/ToF (Target of Target, Target o
 L["FIX_COMBATTEXT"]     = "Turn on Combat Message on logging in"
 L["Combat Message Enabled"] = "Combat Message Enabled.(It was disabled by some reason)"
 L["FIX_COMBATTEXT_HELP"] = "Sometimes UI or addon cause it off"
+L["SHAMAN_CLASSCOLOR"]  = "Set Shaman ClassColor to Blue(like further Expansions)"
 L["CALLME_ON"]          = "Alarm when Someone calls My Name"
 L["CALLME_NICKNAME"]    = "Nicknames"
 L["CALLME_NICKNAME_HELP"]="Nicknames Seperated by Space"
