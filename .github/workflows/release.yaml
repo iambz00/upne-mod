@@ -5,7 +5,7 @@ on:
   # Package only when release version pushed
     tags:
       - '**'
-      - '!**[ab]+'
+      - '!**[a-z]+'
 
 jobs:
   release:
