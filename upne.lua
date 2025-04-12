@@ -44,6 +44,7 @@ Upnemod.dbDefault = {
             TRADE_CLASS_COLOR   = true,
             DELETE_CONFIRM      = true,
             RAIDICON_TOT        = true,
+            LFD_DEFAULT_PROTOCOL= true,
             FIX_COMBATTEXT      = true,
             CALLME_ON           = false,
             CALLME_NICKNAME     = "",
@@ -186,7 +187,7 @@ function Upnemod:OnInitialize()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL",
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "LFD_DEFAULT_PROTOCOL",
      "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION", "LFG_LEAVE_INSTANCE"})
         do self.Set[v](_, self.db[v]) end
 
@@ -399,6 +400,20 @@ function Upnemod:TurnOnCombatText()
                 p(L["Combat Message Enabled"])
             end
         end, 4)
+    end
+end
+
+
+function Upnemod.Set:LFD_DEFAULT_PROTOCOL(on)
+    if on then Upnemod:SetLFDDefault() end
+    return ""
+end
+
+function Upnemod:SetLFDDefault()
+    -- Addons/Blizzard_GroupFinder/Classic/LFDFrame.lua
+    local isAvailableForAll, isAvailableForPlayer, hideIfNotJoinable = IsLFGDungeonJoinable(2881);
+    if isAvailableForAll and (isAvailableForPlayer or not hideIfNotJoinable) then
+        LFDQueueFrame_SetType(2881)
     end
 end
 
@@ -626,6 +641,12 @@ function Upnemod:BuildOptions()
                 order = 601,
                 width = "full",
                 desc = L["FIX_COMBATTEXT_HELP"],
+            },
+            LFD_DEFAULT_PROTOCOL = {
+                name = L["LFD_DEFAULT_PROTOCOL"],
+                type = "toggle",
+                order = 611,
+                width = "full",
             },
             -- INSTANCE_CHAT_KR = {},
             CALLME_ON = {
