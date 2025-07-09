@@ -174,7 +174,7 @@ function Upnemod:OnInitialize()
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(self.name, self.name, nil)
 
     -- Hooks and Setups
-    ---- GearScore on Tooltip
+    ---- Average Item Level on Tooltip
     GameTooltip:HookScript("OnTooltipSetUnit", upne_OnTooltipSetUnit)
     ---- Spell Caster/ID on Aura/Buff/Debuff Tooltip
     hooksecurefunc(GameTooltip, "SetUnitAura", function(...) upne_AuraHandler(UnitAura, ...) end)
