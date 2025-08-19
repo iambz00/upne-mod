@@ -44,7 +44,7 @@ Upnemod.dbDefault = {
             TRADE_CLASS_COLOR   = true,
             DELETE_CONFIRM      = true,
             RAIDICON_TOT        = true,
-            LFD_DEFAULT_PROTOCOL= true,
+            LFD_DEFAULT         = true,
             FIX_COMBATTEXT      = true,
             CALLME_ON           = false,
             CALLME_NICKNAME     = "",
@@ -187,7 +187,7 @@ function Upnemod:OnInitialize()
     self:TurnOnCombatText()
 
     -- Apply options
-    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "LFD_DEFAULT_PROTOCOL",
+    for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "LFD_DEFAULT",
      "VEHICLEUI_SCALE", "VEHICLEUI_HIDEBG", "DRUID_MANABAR", "FPS_SHOW", "FPS_OPTION", "LFG_LEAVE_INSTANCE"})
         do self.Set[v](_, self.db[v]) end
 
@@ -377,7 +377,7 @@ end
 function Upnemod:INSPECT_READY(_, guid)
     if not self.inspectILVL and InspectModelFrame then
         local text = InspectModelFrame:CreateFontString()
-        text:SetPoint("TOPRIGHT")
+        text:SetPoint("TOPRIGHT", -4, -4)
         text:SetFontObject("GameFontNormalSmall")
         text:SetJustifyH("RIGHT")
         text:SetJustifyV("TOP")
@@ -404,16 +404,16 @@ function Upnemod:TurnOnCombatText()
 end
 
 
-function Upnemod.Set:LFD_DEFAULT_PROTOCOL(on)
+function Upnemod.Set:LFD_DEFAULT(on)
     if on then Upnemod:SetLFDDefault() end
     return ""
 end
 
 function Upnemod:SetLFDDefault()
-    -- Addons/Blizzard_GroupFinder/Classic/LFDFrame.lua
-    local isAvailableForAll, isAvailableForPlayer, hideIfNotJoinable = IsLFGDungeonJoinable(2881);
+    -- Addons/Blizzard_GroupFinder/Mainline/LFDFrame.lua
+    local isAvailableForAll, isAvailableForPlayer, hideIfNotJoinable = IsLFGDungeonJoinable(3034);
     if isAvailableForAll and (isAvailableForPlayer or not hideIfNotJoinable) then
-        LFDQueueFrame_SetType(2881)
+        LFDQueueFrame_SetType(3034)
     end
 end
 
@@ -642,8 +642,8 @@ function Upnemod:BuildOptions()
                 width = "full",
                 desc = L["FIX_COMBATTEXT_HELP"],
             },
-            LFD_DEFAULT_PROTOCOL = {
-                name = L["LFD_DEFAULT_PROTOCOL"],
+            LFD_DEFAULT = {
+                name = L["LFD_DEFAULT"],
                 type = "toggle",
                 order = 611,
                 width = "full",

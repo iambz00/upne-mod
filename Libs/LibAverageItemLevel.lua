@@ -101,7 +101,7 @@ function lib:StoreItemLevel(guid, unit)
 
     if mLink then
         if not oLink then
-            if mLoc == "INVTYPE_2HWEAPON" then
+            if mLoc == "INVTYPE_2HWEAPON" or mLoc == "INVTYPE_RANGED" then
                 numSlot = NUMSLOT.TWOHANDED
             end
             emptySlots = emptySlots - 1
