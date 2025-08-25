@@ -368,13 +368,14 @@ function Upnemod.Set:INSPECT_ILVL(on)
 end
 
 function Upnemod.ItemLevel_Update(_, _, guid, itemlevel)
-    if Upnemod.inspectILVL and itemlevel then
+    if Upnemod.inspectILVL and ( Upnemod.inspectingGUID == guid ) and itemlevel then
         Upnemod.inspectILVL:SetText(itemlevel or "-")
         Upnemod.inspectILVL:Show()
     end
 end
 
 function Upnemod:INSPECT_READY(_, guid)
+    self.inspectingGUID = guid
     if not self.inspectILVL and InspectModelFrame then
         local text = InspectModelFrame:CreateFontString()
         text:SetPoint("TOPRIGHT", -4, -4)
@@ -387,7 +388,6 @@ function Upnemod:INSPECT_READY(_, guid)
     if self.inspectILVL then
         self.inspectILVL:SetText(LibItemLevel:GetItemLevelByGUID(guid) or "-")
     end
-    --self.inspectingGUID = guid
 end
 
 function Upnemod.Set:FIX_COMBATTEXT() Upnemod:TurnOnCombatText() return "" end
