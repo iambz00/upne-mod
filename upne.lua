@@ -316,7 +316,9 @@ local function upne_BatchRoll(action)
         rollID = lootFrame.rollID
         p(L["Roll Action"](action)..GetLootRollItemLink(rollID))
         RollOnLoot(rollID, action)
-        ConfirmLootRoll(rollID, action)
+        if action ~= 0 then
+            ConfirmLootRoll(rollID, action)
+        end
     end
 end
 
@@ -325,6 +327,7 @@ function Upnemod:InitBatchRollButton()
     btn3:SetSize(72, 24)
     btn3:SetText(L["Pass All"])
     btn3:SetPoint("BOTTOMLEFT", GroupLootContainer, "BOTTOMRIGHT")
+    self.batchRoll = btn3
     local btn2 = CreateFrame("Button", "UPNE_NEED_ALL", btn3, "UIPanelButtonTemplate")
     btn2:SetSize(72, 24)
     btn2:SetText(L["Greed All"])
