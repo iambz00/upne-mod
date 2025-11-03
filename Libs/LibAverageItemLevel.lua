@@ -19,8 +19,29 @@ Returns nil if there's no stored data
 3. (Automatically) Gather Item Level Data on Inspection
 
 4. Set/Unset Callback 
-LibItemLevel:SetCallback(addon, CALLBACK_FUNCTION_NAME)
-LibItemLevel:UnsetCallback(addon)
+LibItemLevel:SetCallback(Upnemod, "ItemLevel_Update")
+LibItemLevel:UnsetCallback(Upnemod)
+
+
+
+
+guid and store
+calculate ilvl
+
+Currently Blizzard's formula for equipped average item level is as follows:
+
+ sum of item levels for equipped gear (I)
+-----------------------------------------  = Equipped Average Item Level
+       number of slots (S)
+
+(I) = in taking the sum, the tabard and shirt always count as zero
+      some heirloom items count as zero, other heirlooms count as one
+
+(S) = number of slots depends on the contents of the main and off hand as follows:
+      17 with both hands holding items 
+      17 with a single one-hand item (or a single two-handed item with Titan's Grip)
+      16 with a two-handed item equipped (and no Titan's Grip)
+      16 with both hands empty
 
 
 ]]
@@ -29,7 +50,7 @@ local library = "LibAverageItemLevel"
 assert(LibStub, format("%s requires LibStub", library))
 
 ---@class LibAverageItemLevel
-local lib, oldminor = LibStub:NewLibrary(library, 2)
+local lib, oldminor = LibStub:NewLibrary(library, 1)
 if not lib then return end
 oldminor = oldminor or 0
 
@@ -59,15 +80,16 @@ local NUMSLOT = {
     EMPTY_HAND = 15,
 }
 function lib:StoreItemLevel(guid, unit)
-    if lib.inspecting.guid ~= guid then return end
-
     local sumItemLevel = 0
     local numSlot = NUMSLOT.MAIN_AND_OFF
+    local emptySlots = 0
     for _, invslot in pairs(self.INVSLOT) do
         local itemLink = GetInventoryItemLink(unit, invslot)
         if itemLink then
             local item = Item:CreateFromItemLink(itemLink)
             sumItemLevel = sumItemLevel + (item:GetCurrentItemLevel() or 0)
+        else
+            emptySlots = emptySlots + 1
         end
     end
     local mLink = GetInventoryItemLink(unit, INVSLOT_MAINHAND)
@@ -79,26 +101,25 @@ function lib:StoreItemLevel(guid, unit)
 
     if mLink then
         if not oLink then
-            if mLoc == "INVTYPE_2HWEAPON" or mLoc == "INVTYPE_RANGED" then
+            if mLoc == "INVTYPE_2HWEAPON" or mLoc == "INVTYPE_RANGEDRIGHT" or mLoc == "INVTYPE_RANGED" then
                 numSlot = NUMSLOT.TWOHANDED
             end
+            emptySlots = emptySlots - 1
         end
     else
+        emptySlots = emptySlots - 1
         if not oLink then
             numSlot = NUMSLOT.EMPTY_HAND
+            emptySlots = emptySlots - 1
         end
     end
     -- else MAIN_AND_OFF
     local ilvl_equip = ceil(sumItemLevel / numSlot)
-    local old_ilvl = lib.store[guid] or 0
-
-    if lib.inspecting.guid ~= guid then return end
     lib.store[guid] = ilvl_equip
     lib.callbacks:Fire(CALLBACK_EVENT, guid, ilvl_equip)
-
-    -- Repeat until no changes - Equipments 
-    if old_ilvl ~= ilvl_equip then
-        C_Timer.NewTimer(0.1, function() lib:StoreItemLevel(guid, unit) end)
+    if emptySlots > 1 and lib.inspecting and lib.inspecting.round and lib.inspecting.round < 5 then
+        lib.inspecting.round = lib.inspecting.round + 1
+        C_Timer.NewTimer(0.3, function() lib:StoreItemLevel(guid, unit) end)
     end
 end
 

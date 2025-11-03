@@ -1,6 +1,6 @@
-## Interface: 50500
+## Interface: 50502
 ## Title: upne
-## Version: 5.5.0.3
+## Version: 5.5.2.1
 ## Notes: misc. functions
 ## Notes-koKR: 잡다한 기능
 ## SavedVariables: upneDB

@@ -41,6 +41,7 @@ Upnemod.dbDefault = {
             ANNOUNCE_CHANNEL    = "SAY",
             TOOLTIP_AURA_SRC    = true,
             TOOLTIP_AURA_ID     = true,
+            BATCH_ROLL_BUTTON   = true,
             TRADE_CLASS_COLOR   = true,
             DELETE_CONFIRM      = true,
             RAIDICON_TOT        = true,
@@ -185,6 +186,8 @@ function Upnemod:OnInitialize()
     self:InitToTRaidIcon()
     hooksecurefunc("UnitFrame_OnEvent", upne_RaidIcon_ToT)
     self:TurnOnCombatText()
+    ---- Init Batch Roll Button
+    self:InitBatchRollButton()
 
     -- Apply options
     for _, v in pairs({"ANNOUNCE_INTERRUPT", "TRADE_CLASS_COLOR", "DELETE_CONFIRM", "CALLME_ON", "INSPECT_ILVL", "LFD_DEFAULT",
@@ -297,6 +300,45 @@ end
 function Upnemod.Set:TOOLTIP_UNIT_ILVL() return "" end
 function Upnemod.Set:TOOLTIP_AURA_SRC() return "" end
 function Upnemod.Set:TOOLTIP_AURA_ID() return "" end
+
+function Upnemod.Set:BATCH_ROLL_BUTTON(on)
+    if on then
+        Upnemod.batchRoll:Show()
+    else
+        Upnemod.batchRoll:Hide()
+    end
+    return ""
+end
+
+local function upne_BatchRoll(action)
+    local rollID
+    for _, lootFrame in pairs(GroupLootContainer.rollFrames) do
+        rollID = lootFrame.rollID
+        p(L["Roll Action"](action)..GetLootRollItemLink(rollID))
+        RollOnLoot(rollID, action)
+        ConfirmLootRoll(rollID, action)
+    end
+end
+
+function Upnemod:InitBatchRollButton()
+    local btn3 = CreateFrame("Button", "UPNE_NEED_ALL", GroupLootContainer, "UIPanelButtonTemplate")
+    btn3:SetSize(72, 24)
+    btn3:SetText(L["Pass All"])
+    btn3:SetPoint("BOTTOMLEFT", GroupLootContainer, "BOTTOMRIGHT")
+    local btn2 = CreateFrame("Button", "UPNE_NEED_ALL", btn3, "UIPanelButtonTemplate")
+    btn2:SetSize(72, 24)
+    btn2:SetText(L["Greed All"])
+    btn2:SetPoint("BOTTOMLEFT", btn3, "TOPLEFT")
+    local btn1 = CreateFrame("Button", "UPNE_NEED_ALL", btn2, "UIPanelButtonTemplate")
+    btn1:SetSize(72, 24)
+    btn1:SetText(L["Need All"])
+    btn1:SetPoint("BOTTOMLEFT", btn2, "TOPLEFT")
+
+    btn1:SetScript("OnClick", function() upne_BatchRoll(1) end)  -- Need All
+    btn2:SetScript("OnClick", function() upne_BatchRoll(2) end)  -- Greed All
+    btn3:SetScript("OnClick", function() upne_BatchRoll(0) end)  -- Pass All
+end
+
 
 function Upnemod.Set:TRADE_CLASS_COLOR(on)
     if on then
@@ -604,6 +646,12 @@ function Upnemod:BuildOptions()
                 type = "toggle",
                 order = 152,
                 width = "full",
+            },
+            BATCH_ROLL_BUTTON = {
+                name = L["BATCH_ROLL_BUTTON"],
+                type = "toggle",
+                order = 201,
+                width = "full"
             },
             TOOLTIP_AURA_SRC = {
                 name = L["TOOLTIP_AURA_SRC"],

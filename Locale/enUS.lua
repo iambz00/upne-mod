@@ -49,6 +49,7 @@ L["Interrupt"]          = true
 L["No Target"]          = true
 L["TOOLTIP_AURA_SRC"]   = "Show [Spell ID] on Aura Tooltip"
 L["TOOLTIP_AURA_ID"]    = "Show [Caster Name] on Aura Tooltip"
+L["BATCH_ROLL_BUTTON"]  = "Show [Need All], [Greed All], [Pass All] button next to Roll Frame"
 L["TRADE_CLASS_COLOR"]  = "Show Target Class Color on Trade Window"
 L["DELETE_CONFIRM"]     = "Automatically Input \"DELETE\" String"
 L["RAIDICON_TOT"]       = "Show Raid Icon on ToT/ToF (Target of Target, Target of Focus)"
@@ -77,6 +78,15 @@ L["FPS: Anchor Frame's Anchor Point"] = true
 L["FPS: X Offset"]      = true
 L["FPS: Y Offset"]      = true
 L["Need reload to apply"] = true
+
+L["Need All"]   = true
+L["Greed All"]  = true
+L["Pass All"]   = true
+L["Roll Action"] = function(action)
+    if action == 1 then return "Need - " end
+    if action == 2 then return "Greed - " end
+    if action == 0 then return "Pass - " end
+end
 
 -- koKR only
 --L["INSTANCE_CHAT_KR"] = true

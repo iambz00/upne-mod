@@ -49,6 +49,7 @@ L["Interrupt"]          = "차단"
 L["No Target"]          = "대상 없음"
 L["TOOLTIP_AURA_SRC"]   = "버프/디버프 툴팁에 [시전자 이름] 표시"
 L["TOOLTIP_AURA_ID"]    = "버프/디버프 툴팁에 [주문 ID] 표시"
+L["BATCH_ROLL_BUTTON"]  = "입찰 시 옆에 [모두 입찰], [모두 차비], [모두 포기] 표시"
 L["TRADE_CLASS_COLOR"]  = "거래창에서 상대방 직업색상 보이기"
 L["DELETE_CONFIRM"]     = "\"지금파괴\" 자동 입력"
 L["RAIDICON_TOT"]       = "[대상의 대상]/[주시대상의 대상] 공격대 아이콘 표시"
@@ -78,6 +79,14 @@ L["FPS: X Offset"]      = "좌우 이동"
 L["FPS: Y Offset"]      = "상하 이동"
 L["Need reload to apply"] = "적용을 위해 리로드가 필요합니다."
 
+L["Need All"]   = "모두 입찰"
+L["Greed All"]  = "모두 차비"
+L["Pass All"]   = "모두 포기"
+L["Roll Action"] = function(action)
+    if action == 1 then return "입찰 - " end
+    if action == 2 then return "차비 - " end
+    if action == 0 then return "포기 - " end
+end
 -- koKR only
 L["INSTANCE_CHAT_KR"] = "/ㅑ 를 인스턴스 채팅으로 사용"
 
