@@ -313,11 +313,13 @@ end
 local function upne_BatchRoll(action)
     local rollID
     for _, lootFrame in pairs(GroupLootContainer.rollFrames) do
-        rollID = lootFrame.rollID
-        p(L["Roll Action"](action)..GetLootRollItemLink(rollID))
-        RollOnLoot(rollID, action)
-        if action ~= 0 then
-            ConfirmLootRoll(rollID, action)
+        if lootFrame.rollID then    -- Pass BonusRollFrame
+            rollID = lootFrame.rollID
+            p(L["Roll Action"](action)..GetLootRollItemLink(rollID))
+            RollOnLoot(rollID, action)
+            if action ~= 0 then
+                ConfirmLootRoll(rollID, action)
+            end
         end
     end
 end
