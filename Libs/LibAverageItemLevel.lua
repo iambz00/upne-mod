@@ -79,6 +79,59 @@ local NUMSLOT = {
     TWOHANDED = 15,
     EMPTY_HAND = 15,
 }
+
+-- From Old 5.4 Version
+lib.DELTA = { -- Level to Add
+	[  1] = 8 , -- 1 / 1
+	[373] = 4 , -- 1 / 2
+	[374] = 8 , -- 2 / 2
+	[375] = 4 , -- 1 / 3
+	[376] = 4 , -- 2 / 3
+	[377] = 4 , -- 3 / 3
+	[378] = 7 ,
+	[379] = 4 , -- 1 / 2
+	[380] = 4 , -- 2 / 2
+	[445] = 0 , -- 0 / 2
+	[446] = 4 , -- 1 / 2
+	[447] = 8 , -- 2 / 2
+	[451] = 0 , -- 0 / 1
+	[452] = 8 , -- 1 / 1
+	[453] = 0 , -- 0 / 2
+	[454] = 4 , -- 1 / 2
+	[455] = 8 , -- 2 / 2
+	[456] = 0 , -- 0 / 1
+	[457] = 8 , -- 1 / 1
+	[458] = 0 , -- 0 / 4
+	[459] = 4 , -- 1 / 4
+	[460] = 8 , -- 2 / 4
+	[461] = 12, -- 3 / 4
+	[462] = 16, -- 4 / 4
+	[465] = 0 , -- 0 / 2
+	[466] = 4 , -- 1 / 2
+	[467] = 8 , -- 2 / 2
+	[468] = 0 , -- 0 / 4
+	[469] = 4 , -- 1 / 4
+	[470] = 8 , -- 2 / 4
+	[471] = 12, -- 3 / 4
+	[472] = 16, -- 4 / 4
+	[491] = 0 , -- 0 / 2
+	[492] = 4 , -- 1 / 2
+	[493] = 8 , -- 2 / 2
+	[494] = 0 , -- 0 / 4
+	[495] = 4 , -- 1 / 4
+	[496] = 8 , -- 2 / 4
+	[497] = 12, -- 3 / 4
+	[498] = 16, -- 4 / 4
+}
+function GetActualItemLevel(link)
+  local baseLevel = select(4,GetItemInfo(link))
+  local upgrade = link:match(":(%d+)\124h%[")
+  if baseLevel and upgrade then
+    return baseLevel + levelAdjust[upgrade]
+  else
+    return baseLevel
+  end
+end
 function lib:StoreItemLevel(guid, unit)
     local sumItemLevel = 0
     local numSlot = NUMSLOT.MAIN_AND_OFF
@@ -86,6 +139,11 @@ function lib:StoreItemLevel(guid, unit)
     for _, invslot in pairs(self.INVSLOT) do
         local itemLink = GetInventoryItemLink(unit, invslot)
         if itemLink then
+-- DEBUG START
+            local ulvl = itemLink:match(":(%d+)\124h%[") or -1  -- -1 for test, 0 for real
+            local _,_,_, ilvl = C_Item.GetItemInfo(itemLink)
+            print(itemLink, ilvl, lib.DELTA[ulvl] or -1, ulvl)
+-- DEBUG END
             local item = Item:CreateFromItemLink(itemLink)
             sumItemLevel = sumItemLevel + (item:GetCurrentItemLevel() or 0)
         else
